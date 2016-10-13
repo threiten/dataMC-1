@@ -17,23 +17,18 @@ class mycolors:
 #
 print mycolors.green+"Training quantile regressions on Data "+mycolors.default
 
-dataTrees =  ["Data_13TeV_EBHighR9",
-              "Data_13TeV_EBLowR9",
-              "Data_13TeV_EEHighR9",
-              "Data_13TeV_EELowR9" ]
+qr_data = quantileRegression("data")
 
-qt_data = quantileRegression( "data",
-                              "/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_ichep/",
-                              "cicNoSigmaIetaIeta/trees/",
-                              dataTrees)
+qr_data.loadDF("/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_ichep/",
+               "cicNoSigmaIetaIeta/trees/",
+               ["Data_13TeV_EBHighR9", "Data_13TeV_EBLowR9", "Data_13TeV_EEHighR9", "Data_13TeV_EELowR9" ],
+               100000)
 
-nEvts = 100000
-qt_data.loadDF(nEvts)
-
-# quantiles = [ 0.25, 0.5, 0.75 ]
+# train n-quantiles regressions
+#quantiles = [ 0.25, 0.5, 0.75 ]
 quantiles = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 ]
 for q in quantiles:
-    qt_data.trainQuantile(q)
+    qr_data.trainQuantile(q)
 
     
 # MC
@@ -42,21 +37,16 @@ for q in quantiles:
 
 print mycolors.green+"Training quantile regressions on MC "+mycolors.default
 
-mcTrees =  ["DYToEE_powheg_13TeV_EBHighR9",
-            "DYToEE_powheg_13TeV_EBLowR9",
-            "DYToEE_powheg_13TeV_EEHighR9",
-            "DYToEE_powheg_13TeV_EELowR9" ]
+qr_mc = quantileRegression( "mc" )
 
-qt_mc = quantileRegression( "mc",
-                            "/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_mc/",
-                            "cicNoSigmaIetaIeta/trees/",
-                            mcTrees)
+qr_mc.loadDF("/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_mc/",
+             "cicNoSigmaIetaIeta/trees/",
+             ["DYToEE_powheg_13TeV_EBHighR9", "DYToEE_powheg_13TeV_EBLowR9", "DYToEE_powheg_13TeV_EEHighR9", "DYToEE_powheg_13TeV_EELowR9" ],
+             100000)
 
-nEvts = 100000
-qt_mc.loadDF(nEvts)
-
+# train n-quantiles regressions
 #quantiles = [ 0.25, 0.5, 0.75 ]
 quantiles = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 ]
 for q in quantiles:
-    qt_mc.trainQuantile(q)
+    qr_mc.trainQuantile(q)
     

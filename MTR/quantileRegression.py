@@ -28,6 +28,10 @@ class mycolors:
 
 
 
+
+
+
+
    
 #
 # 
@@ -35,14 +39,16 @@ class mycolors:
 #
 class quantileRegression:
 
-   def __init__(self, dmc, iD, tD, t):
+   def __init__(self, dmc):
       self.dataMC   = dmc
-      self.inputDir = iD
-      self.treeDir  = tD
-      self.trees    = t 
-      
 
-   fname    = "output.root"
+   inputDir = ""
+
+   treeDir  = ""
+
+   trees    = ""
+
+   fname               = "output.root"
 
    evtBranches         = ["rho", "nvtx"]
 
@@ -59,7 +65,21 @@ class quantileRegression:
 
    df = 0
 
+   y_corr = 0
+
+   mcclf = []
+
+   dataclf = []
+
+
+
+
+
+
+
    
+
+
 
 
    
@@ -67,7 +87,11 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #
-   def loadDF(self, maxEvents = -1):
+   def loadDF(self, iDir, tDir, t, maxEvents = -1):
+
+      self.inputDir = iDir
+      self.treeDir  = tDir
+      self.trees = t 
       
       fname    = self.inputDir+self.fname
       
@@ -187,7 +211,7 @@ class quantileRegression:
       
       print mycolors.green+"Data Frame with nEvt = "+mycolors.default, maxEvents
       if (maxEvents != -1):
-         print "Running on ", maxEvents
+         # print "Running on ", maxEvents
          df = df[0:maxEvents]
       else:
          print "Running on all events"
@@ -198,10 +222,42 @@ class quantileRegression:
 
 
 
-   # run the trainings
+
+
+
+
+
+
+
+
+      
+   # get the array of y
    # 
    # --------------------------------------------------------------------------------
    #
+   def getY(self, y):
+      return self.df[y]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   # run the trainings
+   # 
+   # --------------------------------------------------------------------------------
+   #   
    def trainQuantile(self, alpha):
 
       # quantile regressions features
@@ -238,46 +294,153 @@ class quantileRegression:
 
 
 
-#MDDB #
-#MDDB # 
-#MDDB # --------------------------------------------------------------------------------
-#MDDB #
-#MDDB class quantileApply:      
-#MDDB 
-#MDDB    def getCorrectionta(self, y):
-#MDDB 
-#MDDB       # quantile regressions features
-#MDDB       X     = self.df.ix[:,['Pt', 'ScEta', 'Phi', 'rho']]
-#MDDB       # target
-#MDDB       R9    = self.df['R9']
-#MDDB 
-#MDDB       # Read the weights
-#MDDB       mcWeights   = "./weights/data_weights_" + str(alpha) + ".pkl"
-#MDDB       dataWeights = "./weights/mc_weights_"   + str(alpha) + ".pkl"         
-#MDDB 
-#MDDB       mcclf   = pickle.load(gzip.open(mcWeights))
-#MDDB       dataclf = pickle.load(gzip.open(dataWeights))
-#MDDB 
-#MDDB       t0 = time.time()
-#MDDB       print "Predict"
-#MDDB       y_mc = clf.predict(X)
-#MDDB       t1 = time.time()
-#MDDB       print " time = ", t1-t0
-#MDDB       y_upper1d=y_upper.ravel()
-#MDDB       print "Save weights"
-#MDDB       outputName = ""
-#MDDB       if (self.dataMC == "data"):
-#MDDB          outputName = "./weights/data_weights_" + str(alpha) + ".pkl"
-#MDDB       else :
-#MDDB          outputName = "./weights/mc_weights_" + str(alpha) + ".pkl"         
-#MDDB       pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-#MDDB       ## # To retrieve:
-#MDDB       ## clf = pickle.load(gzip.open("test.pkl"))
-
-    
 
 
-## #
+
+
+
+
+   # get the data regression weights
+   # e.g filename = "./weights/mc_weights" the quanitle and .pkl are added here
+   #
+   # --------------------------------------------------------------------------------
+   #
+   def loadDataWeights(self, filename, quantiles):
+
+      dbg = False
+                  
+      if dbg : print "Read weights for data"
+
+      dataclf  = []
+      for q in quantiles:
+         dataWeights   = filename + "_" + str(q) + ".pkl"
+         self.dataclf  .append(pickle.load(gzip.open(dataWeights)))
+      if dbg : print "DATA weights : ", dataclf
+
+
+      
+   # get the MC regression weights
+   # e.g filename = "./weights/mc_weights" the quanitle and .pkl are added here
+   #
+   # --------------------------------------------------------------------------------
+   #
+   def loadMcWeights(self, filename, quantiles):
+
+      dbg = False
+                  
+      if dbg : print "Read weights for MC"
+
+      mcclf    = []
+      for q in quantiles:
+         mcWeights = filename + "_" + str(q) + ".pkl"         
+         self.mcclf    .append(pickle.load(gzip.open(mcWeights)))
+      if dbg : print "MC   weights : ", mcclf
+
+      
+
+
+
+
+
+
+
+
+
+
+
+         
+   # get the names to be used for X and y and fill the corrected vector
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   def correctY(self, x, y, quantiles):
+      
+      dbg = False
+      
+      if dbg : print "Get corrections for ", y, " with quantiels ", quantiles
+
+      y_tmp = []
+      
+      # quantile regressions features
+      X    = self.df.ix[:,x]
+      # target e.g. y = "R9"
+      Y    = self.df[y]
+      if dbg : print "Features: X = ", x, " target y = ", y
+      
+      if dbg : print "Predict MC and DATA for all quantiles"
+      y_mc   = []
+      y_data = []
+      for q in range(0,len(quantiles)):
+         y_mc  .append(self.mcclf[q]  .predict(X))
+         y_data.append(self.dataclf[q].predict(X))
+      if dbg : print "Initial value: Y = "   , Y, " X = ", X
+      if dbg : print " MC-regression = "  , quantiles, y_mc
+      if dbg : print " DATA-regression = ", quantiles, y_data
+
+      # loop over the events
+      for ievt in range(0,len(Y)):
+         if dbg : print "#evt = ", ievt
+         # brute force loop over quantiles predictions for MC
+         # I would need anyway a loop to copy them in an array to use smarter search
+         qmc_low  = 0
+         qmc_high = 0
+         q = 0         
+         while q < len(quantiles): # while + if, to avoid bumping the range
+            if dbg : print y_mc[q][ievt],  Y[ievt], q, len(quantiles)
+            if y_mc[q][ievt] < Y[ievt]:
+               q+=1
+            else:
+               break
+         if q == 0:
+            qmc_low  = 0
+            qmc_high = y_mc[0][ievt]
+         if q < len(quantiles):
+            qmc_low  = y_mc[q-1][ievt]
+            qmc_high = y_mc[q ][ievt]
+         else:
+            qmc_low  = y_mc[q-1][ievt]
+            qmc_high = 1            
+         if dbg : print "    ", qmc_low ,qmc_high
+         #
+         # brute force loop as above but for data
+         qdata_low  = 0
+         qdata_high = 0
+         q = 0
+         while q < len(quantiles):
+            if dbg : print y_data[q][ievt],  Y[ievt], q, len(quantiles)
+            if y_data[q][ievt] < Y[ievt]:
+               q+=1
+            else:
+               break
+         if q == 0:
+            qdata_low  = 0
+            qdata_high = y_data[0][ievt]
+         if q < len(quantiles):
+            qdata_low  = y_data[q-1][ievt]
+            qdata_high = y_data[q ][ievt]
+         else:
+            qdata_low  = y_data[q-1][ievt]
+            qdata_high = 1
+         if dbg : print "    ", qdata_low ,qdata_high
+
+         # interplopate the correction
+         y_corr = (qdata_high-qdata_low)/(qmc_high-qmc_low) * (Y[ievt] - qmc_low) + qdata_low
+         if dbg : print "Input value = ", Y[ievt], " --> corrected value = ", y_corr
+
+         y_tmp.append(y_corr)
+         
+      self.y_corr = y_tmp
+
+
+   # get the corrected array of y
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   def getCorrectedY(self, y):
+      return self.y_corr
+
+
+   ## #
 ## # PLOTS
 ## # --------------------------------------------------------------------------------
 ## #
