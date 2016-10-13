@@ -1,26 +1,14 @@
-import ROOT
-from ROOT import TCanvas
-from ROOT import TFile
-from ROOT import TH1F, TH2F
-
+import numpy as np
+import matplotlib.pyplot as plt
 from root_numpy import root2array, tree2array
 from root_numpy import fill_hist
-
-import numpy as np
-
-import matplotlib.pyplot as plt
-
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.ensemble import GradientBoostingRegressor
-
 import pandas as pd
-
 import root_pandas as rpd
-from root_pandas import read_root
-
+from   root_pandas import read_root
 import time
-
 import pickle
 import gzip
 
@@ -35,12 +23,17 @@ class mycolors:
    grey = '\033[90m'
    black = '\033[90m'
    default = '\033[0m'
+
+
+
+
+
    
 #
 # 
 # --------------------------------------------------------------------------------
 #
-class quantileTraining:
+class quantileRegression:
 
    def __init__(self, dmc, iD, tD, t):
       self.dataMC   = dmc
@@ -111,6 +104,7 @@ class quantileTraining:
          # get the indices of the lead matching the trigger and use them to select the sublead
          # get the indices of the sublead matching the trigger and use them to select the lead
          # NB: I can use the event twice if both lead and sublead trigger
+
          #
          # the trigger decision is stored as a float -> convert it to bool
          # print df["leadHLT_Ele27_WPTight_Gsf_vMatch"].sum()

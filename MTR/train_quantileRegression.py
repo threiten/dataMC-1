@@ -1,4 +1,4 @@
-from quantileRegression import quantileTraining
+from quantileRegression import quantileRegression
 
 class mycolors:
    red = '\033[91m'
@@ -22,15 +22,16 @@ dataTrees =  ["Data_13TeV_EBHighR9",
               "Data_13TeV_EEHighR9",
               "Data_13TeV_EELowR9" ]
 
-qt_data = quantileTraining( "data",
-                            "/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_ichep/",
-                            "cicNoSigmaIetaIeta/trees/",
-                            dataTrees)
+qt_data = quantileRegression( "data",
+                              "/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_ichep/",
+                              "cicNoSigmaIetaIeta/trees/",
+                              dataTrees)
 
-nEvts = 1000
+nEvts = 100000
 qt_data.loadDF(nEvts)
 
-quantiles = [ 0.25, 0.5, 0.75 ]
+# quantiles = [ 0.25, 0.5, 0.75 ]
+quantiles = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 ]
 for q in quantiles:
     qt_data.trainQuantile(q)
 
@@ -46,15 +47,16 @@ mcTrees =  ["DYToEE_powheg_13TeV_EBHighR9",
             "DYToEE_powheg_13TeV_EEHighR9",
             "DYToEE_powheg_13TeV_EELowR9" ]
 
-qt_mc = quantileTraining( "mc",
-                          "/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_mc/",
-                          "cicNoSigmaIetaIeta/trees/",
-                          mcTrees)
+qt_mc = quantileRegression( "mc",
+                            "/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_mc/",
+                            "cicNoSigmaIetaIeta/trees/",
+                            mcTrees)
 
-nEvts = 1000
+nEvts = 100000
 qt_mc.loadDF(nEvts)
 
-quantiles = [ 0.25, 0.5, 0.75 ]
+#quantiles = [ 0.25, 0.5, 0.75 ]
+quantiles = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 ]
 for q in quantiles:
     qt_mc.trainQuantile(q)
     
