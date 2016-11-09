@@ -71,14 +71,36 @@ class quantileRegression:
 
    dataclf = []
 
+   ptmin  =  20.
+   ptmax  =  60.
+   etamin = -2.5
+   etamax =  2.5
+   phimin = -3.14
+   phimax =  3.14
 
+
+
+
+
+
+
+
+   # reshuffle the entries of a dataframe
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   #   def reshuffle_idx(self, dataframe):
+   #      index = list(dataframe.index)
+   #      np.random.shuffle(index)
+   #      dataframe = dataframe.ix[index]
+   #      dataframe.reset_index()
+   #      return dataframe
 
 
 
 
 
    
-
 
 
 
@@ -88,7 +110,7 @@ class quantileRegression:
    # --------------------------------------------------------------------------------
    #
    def loadDF(self, iDir, tDir, t, maxEvents = -1):
-
+      
       self.inputDir = iDir
       self.treeDir  = tDir
       self.trees = t 
@@ -122,6 +144,7 @@ class quantileRegression:
          df = rpd.read_root(fname,t,columns=recoBranches)
       print "Number of events  "
       print df.count()
+      
 
       if (self.dataMC == "data" ):
          # trigger matching logic :         
@@ -187,31 +210,37 @@ class quantileRegression:
          df = data.reset_index()
          #print data
 
+               
+      # print df
          
+      # apply basic selection
+      #
+      df = df.query('@self.ptmin < Pt and Pt < @self.ptmax and @self.etamin < ScEta and ScEta < @self.etamax and @self.phimin < Phi and Phi < @self.phimax')
       
+      print mycolors.green+"Apply basic selection"+mycolors.default
+      print " ptmin  = ", self.ptmin ,"\n ptmax  = ", self.ptmax , " \n etamin = ", self.etamin, " \n etamax = ", self.etamax, " \n phimin = ", self.phimin, " \n phimax = ", self.phimax
+
+      # print df  
+
       # reshuffle events
       #
       print "Reshuffle events"
       rndseed = 12345
       np.random.seed(rndseed)
-      df['random_index'] = np.random.permutation(range(df.index.size))
-      df.sort_values(by='random_index',inplace=True)
-      df.set_index('random_index',inplace=True)
-      # print df
-      
-      # apply basic selection
-      #
-      ptmin  =  20.
-      ptmax  =  60.
-      etamin = -2.5
-      etamax =  2.5
-      phimin = -3.14
-      phimax =  3.14
-      df = df.query('@ptmin < Pt and Pt < @ptmax and @etamin < ScEta and ScEta < @etamax and @phimin < Phi and Phi < @phimax')
-      
+      #      df['random_index'] = np.random.permutation(range(df.index.size))
+      #      df.sort_values(by='random_index',inplace=True)
+      #      df.set_index('random_index',inplace=True)
+      #      print df
+      index = list(df.index)
+      np.random.shuffle(index)
+      df = df.ix[index]
+      df.reset_index(drop=True, inplace=True)
+
+      print df
+
       print mycolors.green+"Data Frame with nEvt = "+mycolors.default, maxEvents
       if (maxEvents != -1):
-         # print "Running on ", maxEvents
+         print "Running on ", maxEvents
          df = df[0:maxEvents]
       else:
          print "Running on all events"
@@ -226,10 +255,7 @@ class quantileRegression:
 
 
 
-
-
-
-
+   
       
    # get the array of y
    # 
@@ -250,10 +276,6 @@ class quantileRegression:
 
 
 
-
-
-
-
    # run the trainings
    # 
    # --------------------------------------------------------------------------------
@@ -261,7 +283,7 @@ class quantileRegression:
    def trainQuantile(self, alpha):
 
       # quantile regressions features
-      X     = self.df.ix[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       # target
       R9    = self.df['R9']
 
@@ -300,8 +322,14 @@ class quantileRegression:
 
 
 
+
+
+
+
+
+
    # get the data regression weights
-   # e.g filename = "./weights/mc_weights" the quanitle and .pkl are added here
+   # e.g filename = "./weights/data_weights" the quantile and .pkl are added here
    #
    # --------------------------------------------------------------------------------
    #
@@ -336,19 +364,17 @@ class quantileRegression:
          self.mcclf    .append(pickle.load(gzip.open(mcWeights)))
       if dbg : print "MC   weights : ", mcclf
 
+
+
+
+
+
+
+
+
+
+
       
-
-
-
-
-
-
-
-
-
-
-
-         
    # get the names to be used for X and y and fill the corrected vector
    # 
    # --------------------------------------------------------------------------------
@@ -357,36 +383,39 @@ class quantileRegression:
       
       dbg = False
       
-      if dbg : print "Get corrections for ", y, " with quantiels ", quantiles
+      print "Get corrections for ", y, " with quantiles ", quantiles
 
       y_tmp = []
       
       # quantile regressions features
-      X    = self.df.ix[:,x]
+      X    = self.df.loc[:,x]
       # target e.g. y = "R9"
       Y    = self.df[y]
-      if dbg : print "Features: X = ", x, " target y = ", y
+      print "Features: X = ", x, " target y = ", y
       
       if dbg : print "Predict MC and DATA for all quantiles"
-      y_mc   = []
-      y_data = []
+      y_mc   = [] # list storing the n=q predictions on mc   for each event
+      y_data = [] # list storing the n=q predictions on data for each event
       for q in range(0,len(quantiles)):
          y_mc  .append(self.mcclf[q]  .predict(X))
          y_data.append(self.dataclf[q].predict(X))
-      if dbg : print "Initial value: Y = "   , Y, " X = ", X
-      if dbg : print " MC-regression = "  , quantiles, y_mc
-      if dbg : print " DATA-regression = ", quantiles, y_data
+      if dbg : print " Initial value: Y = ", Y
+      if dbg : print "                X = ", X
+      if dbg : print " MC-regression = "  ,  y_mc
+      if dbg : print " DATA-regression = ",  y_data
 
-      # loop over the events
-      for ievt in range(0,len(Y)):
+      # loop over the events #  <<-- this sucks... eventually should be vectorized, but I don't know how
+      for ievt in range(0,len(Y)): 
+
          if dbg : print "#evt = ", ievt
+         
          # brute force loop over quantiles predictions for MC
          # I would need anyway a loop to copy them in an array to use smarter search
          qmc_low  = 0
          qmc_high = 0
          q = 0         
          while q < len(quantiles): # while + if, to avoid bumping the range
-            if dbg : print y_mc[q][ievt],  Y[ievt], q, len(quantiles)
+            if dbg : print "mc   ", q, len(quantiles), ievt, y_mc[q][ievt],  Y[ievt] 
             if y_mc[q][ievt] < Y[ievt]:
                q+=1
             else:
@@ -400,18 +429,13 @@ class quantileRegression:
          else:
             qmc_low  = y_mc[q-1][ievt]
             qmc_high = 1            
-         if dbg : print "    ", qmc_low ,qmc_high
+         if dbg : print "mc-quantile    ", q, " --> [ ", qmc_low ,qmc_high, " ]"
+
          #
          # brute force loop as above but for data
+         # q is the one we find on mc
          qdata_low  = 0
          qdata_high = 0
-         q = 0
-         while q < len(quantiles):
-            if dbg : print y_data[q][ievt],  Y[ievt], q, len(quantiles)
-            if y_data[q][ievt] < Y[ievt]:
-               q+=1
-            else:
-               break
          if q == 0:
             qdata_low  = 0
             qdata_high = y_data[0][ievt]
@@ -421,254 +445,123 @@ class quantileRegression:
          else:
             qdata_low  = y_data[q-1][ievt]
             qdata_high = 1
-         if dbg : print "    ", qdata_low ,qdata_high
+         if dbg : print "data-quantiles  --> [ ", qdata_low ,qdata_high, " ]"
+
+
 
          # interplopate the correction
          y_corr = (qdata_high-qdata_low)/(qmc_high-qmc_low) * (Y[ievt] - qmc_low) + qdata_low
-         if dbg : print "Input value = ", Y[ievt], " --> corrected value = ", y_corr
+         if dbg : print "Apply correction: Input value = ", Y[ievt], " --> corrected value = ", y_corr
 
          y_tmp.append(y_corr)
          
-      self.y_corr = y_tmp
+      #self.y_corr = y_tmp
+      ycorr = y+"_corr"
+      self.df[ycorr] = y_tmp
 
 
+
+
+
+
+
+
+
+
+     
    # get the corrected array of y
    # 
    # --------------------------------------------------------------------------------
    #
    def getCorrectedY(self, y):
-      return self.y_corr
+      ycorr = y+"_corr"
+      return self.df[ycorr]
+      # return self.y_corr
 
 
-   ## #
-## # PLOTS
-## # --------------------------------------------------------------------------------
-## #
-## 
-## # values used to produce scatter plots
-## pt    = df.ix[:,['Pt']]
-## eta   = df.ix[:,['ScEta']]
-## phi   = df.ix[:,['Phi']]
-## rho   = df.ix[:,['rho']]
-## 
-## print "Plotting"
-## 
-## # projection var vs eta
-## def projection(nbins, min, max, varbins, var, y_lower1d, y_pred1d, y_upper1d):
-##     bins  = np.linspace(min, max,nbins+1)
-##     for i in range(0,nbins):
-##         varbins.append(0.5*(bins[i]+bins[i+1]))
-##     inds  = np.digitize(var, bins)    
-##     varR9_upper = np.zeros(nbins)
-##     varR9       = np.zeros(nbins)
-##     varR9_lower = np.zeros(nbins)
-##     nvar        = np.zeros(nbins)
-##     var1d       = np.ravel(var)
-##     for n in range(var.size):
-##        # print inds[n]-1 , "   " , bins[inds[n]-1], "<=", var1d[n], "<", bins[inds[n]]
-##        varR9_upper[inds[n]-1] = varR9_upper[inds[n]-1] + y_upper1d[n]
-##        varR9      [inds[n]-1] = varR9      [inds[n]-1] + y_pred1d[n]
-##        varR9_lower[inds[n]-1] = varR9_lower[inds[n]-1] + y_lower1d[n]
-##        nvar[inds[n]-1] += 1
-## 
-##     meanR9var_upper = varR9_upper / nvar
-##     meanR9var       = varR9       / nvar
-##     meanR9var_lower = varR9_lower / nvar
-##     return varbins, meanR9var_lower, meanR9var, meanR9var_upper
-## 
-## # R9 vs pt
-## nbins = 10
-## meanR9pt_lower = []
-## meanR9pt       = [] 
-## meanR9pt_upper = [] 
-## ptbins         = []
-## ptbins, meanR9pt_lower, meanR9pt, meanR9pt_upper = projection(nbins, ptmin, ptmax, ptbins, pt, y_lower1d, y_pred1d, y_upper1d)
-## 
-## # R9 vs eta
-## nbins = 10
-## meanR9eta_lower = []
-## meanR9eta       = [] 
-## meanR9eta_upper = [] 
-## etabins         = []
-## etabins, meanR9eta_lower, meanR9eta, meanR9eta_upper = projection(nbins, etamin, etamax, etabins, eta, y_lower1d, y_pred1d, y_upper1d)
-## 
-## # R9 vs phi
-## nbins = 10
-## meanR9phi_lower = []
-## meanR9phi       = [] 
-## meanR9phi_upper = [] 
-## phibins         = []
-## phibins, meanR9phi_lower, meanR9phi, meanR9phi_upper = projection(nbins, phimin, phimax, phibins, phi, y_lower1d, y_pred1d, y_upper1d)
-## 
-## 
-## # 2D plots
-## #
-## 
-## def plot2D(xlabel, ylabel, Xvar, Yvar, varbins, meanYvar_upper, meanYvar, meanYvar_lower, outfile ):
-##     fig  = plt.figure()
-##     fig.patch.set_facecolor('white')
-##     axes = plt.axes()
-##     plt.grid()
-##     plt.xlabel(xlabel)
-##     plt.ylabel(ylabel)
-##     axes.xaxis.set_label_coords(1., -0.07)
-##     axes.yaxis.set_label_coords(-0.07, 1.)
-##     plt.scatter(Xvar   ,Yvar           , color='grey'  , marker='+')
-##     plt.scatter(varbins,meanYvar_upper , color='blue'  , marker="H", linestyle='-')
-##     plt.plot   (varbins,meanYvar_upper , linestyle='-')
-##     plt.scatter(varbins,meanYvar       , color='green' , marker="H", linestyle='-')
-##     plt.plot   (varbins,meanYvar       , linestyle='-')
-##     plt.scatter(varbins,meanYvar_lower , color='red'   , marker="H", linestyle='-')
-##     plt.plot   (varbins,meanYvar_lower , linestyle='-')
-##     plt.plot()
-##     # plt.show()
-##     fig.savefig(outfile)
-## 
-## plot2D('$pt$'  , 'R$_9$', pt  ,R9, ptbins,  meanR9pt_upper,  meanR9pt,  meanR9pt_lower,  "./meanR9_pt.pdf")
-## plot2D('$\eta$', 'R$_9$', eta ,R9, etabins, meanR9eta_upper, meanR9eta, meanR9eta_lower, "./meanR9_eta.pdf")
-## plot2D('$\phi$', 'R$_9$', phi ,R9, phibins, meanR9phi_upper, meanR9phi, meanR9phi_lower, "./meanR9_phi.pdf")
-## 
-## 
-## 
-## 
-## # not finished 
-## # not finished #
-## # not finished # Set up the traning for N-quantiles
-## # not finished # --------------------------------------------------------------------------------
-## # not finished #
-## # not finished 
-## # not finished maxEvents = 1000
-## # not finished 
-## # not finished # apply basic selection
-## # not finished #
-## # not finished ptmin  =  20.
-## # not finished ptmax  =  60.
-## # not finished etamin = -2.5
-## # not finished etamax =  2.5
-## # not finished phimin = -3.14
-## # not finished phimax =  3.14
-## # not finished df = df.query('@ptmin < Pt and Pt < @ptmax and @etamin < ScEta and ScEta < @etamax and @phimin < Phi and Phi < @phimax')
-## # not finished 
-## # not finished print mycolors.green+"Data Frame with nEvt = "+mycolors.default, maxEvents
-## # not finished df = df[0:maxEvents]
-## # not finished 
-## # not finished # quantile regressions features
-## # not finished X     = df.ix[:,['Pt', 'ScEta', 'Phi', 'rho']]
-## # not finished # target
-## # not finished R9    = df['R9']
-## # not finished 
-## # not finished # train quantile regression
-## # not finished # e.g. 3 --> 0.25, 0.5, 0.75 (0 and 1 are not allowed)
-## # not finished nquantiles = 9
-## # not finished #
-## # not finished y = []
-## # not finished 
-## # not finished for iq  in range(1,nquantiles+1): # 0.1,0.2, ... , 0.9
-## # not finished    alpha = iq*1./(nquantiles+1)
-## # not finished    
-## # not finished    print mycolors.green+"Train q = "+mycolors.default, alpha
-## # not finished    clf = GradientBoostingRegressor(loss='quantile', alpha=alpha,
-## # not finished                                    n_estimators=250, max_depth=3,
-## # not finished                                    learning_rate=.1, min_samples_leaf=9,
-## # not finished                                    min_samples_split=9)
-## # not finished    t0 = time.time()
-## # not finished    clf.fit(X, R9)
-## # not finished    t1 = time.time()
-## # not finished    print " time = ", t1-t0
-## # not finished    print "Predict"
-## # not finished    t0 = time.time()
-## # not finished    y.append(clf.predict(X))
-## # not finished    t1 = time.time()
-## # not finished    print " time = ", t1-t0
-## # not finished 
-## # not finished #for iq  in range(1,nquantiles+1):
-## # not finished #   print iq, y[iq-1]
-## # not finished    
-## # not finished 
-## # not finished #
-## # not finished # PLOTS
-## # not finished # --------------------------------------------------------------------------------
-## # not finished #
-## # not finished 
-## # not finished # values used to produce scatter plots
-## # not finished pt    = df.ix[:,['Pt']]
-## # not finished eta   = df.ix[:,['ScEta']]
-## # not finished phi   = df.ix[:,['Phi']]
-## # not finished rho   = df.ix[:,['rho']]
-## # not finished 
-## # not finished print "Plotting"
-## # not finished 
-## # not finished # projection data and predictions vs var
-## # not finished def projection(nbins, min, max, varbins, var, y, nquantiles):
-## # not finished    bins  = np.linspace(min, max,nbins+1)
-## # not finished    # bin variable var
-## # not finished    for i in range(0,nbins):
-## # not finished        varbins.append(0.5*(bins[i]+bins[i+1]))
-## # not finished    inds  = np.digitize(var, bins)
-## # not finished    varTarget = []
-## # not finished    y1d = []
-## # not finished    nvar = []
-## # not finished    for iq in range (1,nquantiles+1):
-## # not finished       varTarget   .append(np.zeros(nbins))
-## # not finished       y1d         .append(y[iq-1].ravel())
-## # not finished       nvar        .append(np.zeros(nbins))
-## # not finished    var1d       = np.ravel(var)
-## # not finished    # projections
-## # not finished    meanTargetvar = []
-## # not finished    for n in range(var.size):
-## # not finished       print n, inds[n]-1 , "   " , bins[inds[n]-1], "<=", var1d[n], "<", bins[inds[n]]
-## # not finished       for iq in range (1,nquantiles+1):
-## # not finished          # print iq, nquantiles
-## # not finished          varTarget[iq-1][inds[n]-1] = varTarget[iq-1][inds[n]-1] + y1d[iq-1][n]
-## # not finished       nvar[iq-1][inds[n]-1] += 1
-## # not finished       print nvar
-## # not finished    for iq in range (1,nquantiles+1):            
-## # not finished       meanTargetvar .append( varTarget[iq-1] / nvar[iq-1])
-## # not finished    return varbins, meanTargetvar
-## # not finished 
-## # not finished # R9 vs pt
-## # not finished nbins = 10
-## # not finished meanR9pt       = [] 
-## # not finished ptbins         = []
-## # not finished ptbins, meanR9pt = projection(nbins, ptmin, ptmax, ptbins, pt, y, nquantiles)
-## # not finished 
-## # not finished # # R9 vs eta
-## # not finished # nbins = 10
-## # not finished # meanR9eta_lower = []
-## # not finished # meanR9eta       = [] 
-## # not finished # meanR9eta_upper = [] 
-## # not finished # etabins         = []
-## # not finished # etabins, meanR9eta = projection(nbins, etamin, etamax, etabins, eta, y, nquantiles)
-## # not finished # 
-## # not finished # # R9 vs phi
-## # not finished # nbins = 10
-## # not finished # meanR9phi_lower = []
-## # not finished # meanR9phi       = [] 
-## # not finished # meanR9phi_upper = [] 
-## # not finished # phibins         = []
-## # not finished # phibins, meanR9phi = projection(nbins, phimin, phimax, phibins, phi, y, nquantiles)
-## # not finished # 
-## # not finished 
-## # not finished # 2D plots
-## # not finished #
-## # not finished 
-## # not finished def plot2D(xlabel, ylabel, Xvar, Yvar, varbins, meanYvar, nquantiles, outfile ):
-## # not finished     fig  = plt.figure()
-## # not finished     fig.patch.set_facecolor('white')
-## # not finished     axes = plt.axes()
-## # not finished     plt.grid()
-## # not finished     plt.xlabel(xlabel)
-## # not finished     plt.ylabel(ylabel)
-## # not finished     axes.xaxis.set_label_coords(1., -0.07)
-## # not finished     axes.yaxis.set_label_coords(-0.07, 1.)
-## # not finished     plt.scatter(Xvar   ,Yvar           , color='grey'  , marker='+')
-## # not finished     for iq in range(1,nquantiles+1):
-## # not finished        plt.scatter(varbins,meanYvar[iq-1]       , color='green' , marker="H", linestyle='-')
-## # not finished        plt.plot   (varbins,meanYvar[iq-1]       , linestyle='-')
-## # not finished     plt.plot()
-## # not finished     # plt.show()
-## # not finished     fig.savefig(outfile)
-## # not finished 
-## # not finished plot2D('$pt$'  , 'R$_9$', pt  ,R9, ptbins,  meanR9pt, nquantiles, "./meanR9_pt.pdf")
-## # not finished #plot2D('$\eta$', 'R$_9$', eta ,R9, etabins, meanR9eta, nquantiles, "./meanR9_eta.pdf")
-## # not finished #plot2D('$\phi$', 'R$_9$', phi ,R9, phibins, meanR9phi, nquantiles, "./meanR9_phi.pdf")
+
+
+
+
+
+
+
+
+
+
+   # Scatter plots to check the quantiles
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   def plotQuantiles(self, quantiles, xVar, nbins, xMin, xMax, yVar, xLabel , yLabel, outfile ): # << R9 hardcoded !!! generalize for all vars
+
+      xx = self.df.ix[:,[xVar]]
+
+      # quantile regressions features
+      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      # target
+      yy    = self.df[yVar]
+
+      # compute the predictions
+      y = []
+      y_1d = []
+      for iq in range(0,len(quantiles)):
+         # print 'Predict ', quantiles[iq], ' quantile'
+         pred = 0
+         if (self.dataMC == "mc"):
+            pred = self.mcclf[iq].predict(X)
+         if (self.dataMC == "data"):
+            pred = self.dataclf[iq].predict(X)
+         y.append(pred)
+         y_1d.append(pred.ravel())
+
+
+      # projection y vs x for the scatter plot
+      def projection(nbins, min, max, var, y_1d):
+         varbins = []
+         bins  = np.linspace(min, max,nbins+1)
+         for i in range(0,nbins):
+            varbins.append(0.5*(bins[i]+bins[i+1]))
+         varyy = []
+         for iq in range(0,len(quantiles)):
+            y_pred      = y_1d[iq]
+            inds        = np.digitize(var, bins)    
+            vyy         = np.zeros(nbins)
+            nvar        = np.zeros(nbins)
+            var1d       = np.ravel(var)
+            for n in range(var.size):
+               # print inds[n]-1 , "   " , bins[inds[n]-1], "<=", var1d[n], "<", bins[inds[n]]
+               vyy[inds[n]-1] = vyy[inds[n]-1] + y_pred[n]
+               nvar[inds[n]-1] += 1
+            meanyyvar = vyy / nvar # the use of the mean is not great...
+            varyy.append(meanyyvar)
+         return varbins, varyy
+     
+      # yy vs xx
+      meanyyxx = []
+      xxbins   = []
+      xxbins, meanyyxx = projection(nbins, xMin, xMax, xx, y_1d)
+      
+      def plot2D(xlabel, ylabel, Xvar, Yvar, varbinning, meanY, outfile ):
+         fig  = plt.figure()
+         # fig.patch.set_facecolor('white')
+         axes = plt.axes()
+         plt.grid()
+         plt.xlabel(xlabel)
+         plt.ylabel(ylabel)
+         axes.xaxis.set_label_coords(1., -0.07)
+         axes.yaxis.set_label_coords(-0.07, 1.)
+         plt.scatter(Xvar   ,Yvar           , color='grey'  , marker='+')
+         for iq in range(0,len(quantiles)):
+            if (quantiles[iq] == 0.5):
+               plt.plot   (varbinning, meanY[iq] , linestyle='-', color='red', marker="H")
+            else:
+               plt.plot   (varbinning, meanY[iq] , linestyle='-', color='blue', marker="H")
+            plt.plot()
+         fig.savefig(outfile)
+         return plt
+
+      
+      plot = plot2D(xLabel, yLabel, xx  ,yy, xxbins,  meanyyxx, outfile)
+      
+      return plot
