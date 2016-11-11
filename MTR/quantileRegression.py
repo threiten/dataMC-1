@@ -85,31 +85,11 @@ class quantileRegression:
 
 
 
-   # reshuffle the entries of a dataframe
-   # 
-   # --------------------------------------------------------------------------------
-   #
-   #   def reshuffle_idx(self, dataframe):
-   #      index = list(dataframe.index)
-   #      np.random.shuffle(index)
-   #      dataframe = dataframe.ix[index]
-   #      dataframe.reset_index()
-   #      return dataframe
-
-
-
-
-
-   
-
-
-
-   
    # load the dataframe from the input files
    # 
    # --------------------------------------------------------------------------------
    #
-   def loadDF(self, iDir, tDir, t, maxEvents = -1):
+   def loadDF(self, iDir, tDir, t, start, stop, rndm = 12345):
       
       self.inputDir = iDir
       self.treeDir  = tDir
@@ -224,8 +204,8 @@ class quantileRegression:
 
       # reshuffle events
       #
-      print "Reshuffle events"
-      rndseed = 12345
+      print mycolors.green+"Reshuffle events"+mycolors.default, "rndm seed  = ", rndm
+      rndseed = rndm
       np.random.seed(rndseed)
       #      df['random_index'] = np.random.permutation(range(df.index.size))
       #      df.sort_values(by='random_index',inplace=True)
@@ -236,17 +216,30 @@ class quantileRegression:
       df = df.ix[index]
       df.reset_index(drop=True, inplace=True)
 
-      print df
+      # print df
 
-      print mycolors.green+"Data Frame with nEvt = "+mycolors.default, maxEvents
-      if (maxEvents != -1):
-         print "Running on ", maxEvents
-         df = df[0:maxEvents]
-      else:
-         print "Running on all events"
-      
+      # Select a subset of events
+      if   start == -1 :
+         print "Invalid start-evt = -1 "
+         return
+      if stop  == -1 :
+         stop = len(df.index)
+
+      print mycolors.green+"Selecting events",mycolors.default, " [", start, ", ", stop, "]"
+      df = df[start:stop]
+#      X  =  X.loc[start:stop,:]
+#      R9 = R9.loc[start:stop]
+#
+#
+#      if (maxEvents != -1):
+#         print mycolors.green+"Loading "+mycolors.default, maxEvents
+#         df = df[0:maxEvents]
+#      else:
+#         print mycolors.green+"Loading all events"+mycolors.default
+#      
       self.df = df
 
+      print "DataFrame size = ", len(self.df.index)
 
 
 
@@ -255,16 +248,31 @@ class quantileRegression:
 
 
 
-   
       
-   # get the array of y
+   # geat the array of y
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   def getNEntries(self):
+      return self.df.count()
+      
+
+
+
+
+
+
+
+
+
+
+   # geat the array of y
    # 
    # --------------------------------------------------------------------------------
    #
    def getY(self, y):
+      print 'Y = ', y
       return self.df[y]
-
-
 
 
 
@@ -286,7 +294,7 @@ class quantileRegression:
       X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       # target
       R9    = self.df['R9']
-
+      
       # train quantile regression
       #
       print mycolors.green+"Train q = "+mycolors.default, alpha
@@ -392,6 +400,7 @@ class quantileRegression:
       # target e.g. y = "R9"
       Y    = self.df[y]
       print "Features: X = ", x, " target y = ", y
+
       
       if dbg : print "Predict MC and DATA for all quantiles"
       y_mc   = [] # list storing the n=q predictions on mc   for each event
@@ -415,7 +424,7 @@ class quantileRegression:
          qmc_high = 0
          q = 0         
          while q < len(quantiles): # while + if, to avoid bumping the range
-            if dbg : print "mc   ", q, len(quantiles), ievt, y_mc[q][ievt],  Y[ievt] 
+            if dbg : print "mc   ", q, len(quantiles), y_mc[q][ievt],  Y[ievt] 
             if y_mc[q][ievt] < Y[ievt]:
                q+=1
             else:
@@ -432,8 +441,12 @@ class quantileRegression:
          if dbg : print "mc-quantile    ", q, " --> [ ", qmc_low ,qmc_high, " ]"
 
          #
-         # brute force loop as above but for data
          # q is the one we find on mc
+         if dbg:
+            qt = 0 
+            while qt < len(quantiles):
+               print "data ", qt, len(quantiles), y_data[qt][ievt],  Y[ievt]
+               qt+=1
          qdata_low  = 0
          qdata_high = 0
          if q == 0:
@@ -458,7 +471,7 @@ class quantileRegression:
       #self.y_corr = y_tmp
       ycorr = y+"_corr"
       self.df[ycorr] = y_tmp
-
+      # print self.df[ycorr]
 
 
 
@@ -475,6 +488,7 @@ class quantileRegression:
    #
    def getCorrectedY(self, y):
       ycorr = y+"_corr"
+      print 'Corrected Y = ', ycorr
       return self.df[ycorr]
       # return self.y_corr
 
