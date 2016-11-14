@@ -213,10 +213,7 @@ class quantileRegression:
       #      print df
       index = list(df.index)
       np.random.shuffle(index)
-      df = df.ix[index]
-      df.reset_index(drop=True, inplace=True)
 
-      # print df
 
       # Select a subset of events
       if   start == -1 :
@@ -225,18 +222,15 @@ class quantileRegression:
       if stop  == -1 :
          stop = len(df.index)
 
-      print mycolors.green+"Selecting events",mycolors.default, " [", start, ", ", stop, "]"
-      df = df[start:stop]
-#      X  =  X.loc[start:stop,:]
-#      R9 = R9.loc[start:stop]
-#
-#
-#      if (maxEvents != -1):
-#         print mycolors.green+"Loading "+mycolors.default, maxEvents
-#         df = df[0:maxEvents]
-#      else:
-#         print mycolors.green+"Loading all events"+mycolors.default
-#      
+      print mycolors.green+"Selecting events",mycolors.default, " [", start, ", ", stop, "]  out of ", len(df.index)
+      index = index[start:stop]
+      # df = df[start:stop]
+
+      df = df.ix[index]
+      df.reset_index(drop=True, inplace=True)
+
+      # print df
+
       self.df = df
 
       print "DataFrame size = ", len(self.df.index)
@@ -288,7 +282,7 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #   
-   def trainQuantile(self, alpha):
+   def trainQuantile(self, alpha, pathWeights):
 
       # quantile regressions features
       X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
@@ -315,9 +309,9 @@ class quantileRegression:
       print "Save weights"
       outputName = ""
       if (self.dataMC == "data"):
-         outputName = "./weights/data_weights_" + str(alpha) + ".pkl"
+         outputName = pathWeights+"/data_weights_" + str(alpha) + ".pkl"
       else :
-         outputName = "./weights/mc_weights_" + str(alpha) + ".pkl"         
+         outputName = pathWeights+"/mc_weights_" + str(alpha) + ".pkl"         
       pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
 
