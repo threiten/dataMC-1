@@ -1,4 +1,9 @@
+import sys
 from quantileRegression import quantileRegression
+
+# Nevt passing selection
+# mc   4545316 : train on 2000000
+# data 1441902 : train on all
 
 class mycolors:
    red = '\033[91m'
@@ -23,6 +28,10 @@ quantiles = [ 0.11, 0.22 ]
 #               0.8  ,  0.825,  0.85 ,  0.875,  0.9  ,  0.925,  0.95 ,  0.975]
 
 
+Y = "R9" #  "R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
+
+outputDir = "/mnt/t3nfs01/data01/shome/mdonega/dataMC/MTR/weightsTest/"
+
 # data
 #--------------------------------------------------------------------------------
 #
@@ -31,7 +40,7 @@ print mycolors.green+"Training quantile regressions on Data "+mycolors.default
 qr_data = quantileRegression("data")
 startEvt = 1
 stopEvt   = 1000
-qr_data.loadDF("/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_ichep/",
+qr_data.loadDF("/mnt/t3nfs01/data01/shome/mdonega/dataMC/nt/double_ele_spring16v2_sync_v1_ichep/",
                "cicNoSigmaIetaIeta/trees/",
                ["Data_13TeV_EBHighR9", "Data_13TeV_EBLowR9", "Data_13TeV_EEHighR9", "Data_13TeV_EELowR9" ],
                startEvt, stopEvt, 12345)
@@ -39,19 +48,18 @@ qr_data.loadDF("/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1
 print "Data Frame has ", qr_data.getNEntries(), "entries"
 
 for q in quantiles:
-    qr_data.trainQuantile(q)
+    qr_data.trainQuantile(Y, q, outputDir)
 
     
 # MC
 # --------------------------------------------------------------------------------
-#
 #
 print mycolors.green+"Training quantile regressions on MC "+mycolors.default
 
 qr_mc = quantileRegression( "mc" )
 startEvt = 1
 stopEvt   = 1000
-qr_mc.loadDF("/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_mc/",
+qr_mc.loadDF("/mnt/t3nfs01/data01/shome/mdonega/dataMC/nt/double_ele_spring16v2_sync_v1_mc",
              "cicNoSigmaIetaIeta/trees/",
              ["DYToEE_powheg_13TeV_EBHighR9", "DYToEE_powheg_13TeV_EBLowR9", "DYToEE_powheg_13TeV_EEHighR9", "DYToEE_powheg_13TeV_EELowR9" ],
              startEvt, stopEvt, 12345)
@@ -59,5 +67,5 @@ qr_mc.loadDF("/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_m
 print "Data Frame has ", qr_mc.getNEntries(), "entries"
 
 for q in quantiles:
-    qr_mc.trainQuantile(q)
+    qr_mc.trainQuantile(Y,q, outputDir)
     

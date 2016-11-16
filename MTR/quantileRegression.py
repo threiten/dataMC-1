@@ -282,12 +282,12 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #   
-   def trainQuantile(self, alpha, pathWeights):
+   def trainQuantile(self, var, alpha, pathWeights):
 
       # quantile regressions features
       X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       # target
-      R9    = self.df['R9']
+      Y     = self.df[var]
       
       # train quantile regression
       #
@@ -297,7 +297,7 @@ class quantileRegression:
                                       learning_rate=.1, min_samples_leaf=9,
                                       min_samples_split=9)
       t0 = time.time()
-      clf.fit(X, R9)
+      clf.fit(X, Y)
       t1 = time.time()
       print " time = ", t1-t0
       print "Predict"
@@ -309,9 +309,9 @@ class quantileRegression:
       print "Save weights"
       outputName = ""
       if (self.dataMC == "data"):
-         outputName = pathWeights+"/data_weights_" + str(alpha) + ".pkl"
+         outputName = pathWeights+"/data_weights_" + Y + '_' + str(alpha) + ".pkl"
       else :
-         outputName = pathWeights+"/mc_weights_" + str(alpha) + ".pkl"         
+         outputName = pathWeights+"/mc_weights_" + Y + '_' + str(alpha) + ".pkl"         
       pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
 

@@ -20,11 +20,13 @@ class mycolors:
 
 print mycolors.green+"Training quantile regressions on"+mycolors.default
 dataMC = sys.argv[1]
-print "Data/MC = ", sys.argv[1]
-quantiles  = [ float(sys.argv[2]) ]
+print "Data/MC = ", dataMC
+Y = sys.argv[2]
+print "Y = ", Y
+quantiles  = [ float(sys.argv[3]) ]
 print "Quantile = ", quantiles
-startEvt = int(sys.argv[3])
-stopEvt  = int(sys.argv[4])
+startEvt = int(sys.argv[4])
+stopEvt  = int(sys.argv[5])
 print "Events in [", startEvt, ", ", stopEvt, "]"
 
 qr = quantileRegression(sys.argv[1])
@@ -37,7 +39,7 @@ if dataMC == "data":
              ["Data_13TeV_EBHighR9", "Data_13TeV_EBLowR9", "Data_13TeV_EEHighR9", "Data_13TeV_EELowR9" ],
              startEvt, stopEvt, 12345)
    for q in quantiles:
-      qr.trainQuantile(q, outputDir)
+      qr.trainQuantile(Y, q, outputDir)
 
 elif dataMC == "mc":
    qr.loadDF("/mnt/t3nfs01/data01/shome/mdonega/dataMC/nt/double_ele_spring16v2_sync_v1_mc/",
@@ -45,7 +47,7 @@ elif dataMC == "mc":
              ["DYToEE_powheg_13TeV_EBHighR9", "DYToEE_powheg_13TeV_EBLowR9", "DYToEE_powheg_13TeV_EEHighR9", "DYToEE_powheg_13TeV_EELowR9" ],
              startEvt, stopEvt, 12345)
    for q in quantiles:
-      qr.trainQuantile(q, outputDir)
+      qr.trainQuantile(Y, q, outputDir)
 
 else: print " ERROR: choose data or mc"
 
