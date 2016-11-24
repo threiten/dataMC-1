@@ -323,27 +323,20 @@ class quantileRegression:
 
 
 
-
-
-
-
-
-
-
    # get the data regression weights
    # e.g filename = "./weights/data_weights" the quantile and .pkl are added here
    #
    # --------------------------------------------------------------------------------
    #
-   def loadDataWeights(self, filename, quantiles):
+   def loadDataWeights(self, filename, var, quantiles):
 
       dbg = False
                   
-      if dbg : print "Read weights for data"
+      if dbg : print "Read weights for data for variable ", var
 
       dataclf  = []
       for q in quantiles:
-         dataWeights   = filename + "_" + str(q) + ".pkl"
+         dataWeights   = filename + "_" + var + '_' + str(q) + ".pkl"
          self.dataclf  .append(pickle.load(gzip.open(dataWeights)))
       if dbg : print "DATA weights : ", dataclf
 
@@ -354,15 +347,15 @@ class quantileRegression:
    #
    # --------------------------------------------------------------------------------
    #
-   def loadMcWeights(self, filename, quantiles):
+   def loadMcWeights(self, filename, var, quantiles):
 
       dbg = False
                   
-      if dbg : print "Read weights for MC"
+      if dbg : print "Read weights for MC for variable ", var
 
       mcclf    = []
       for q in quantiles:
-         mcWeights = filename + "_" + str(q) + ".pkl"         
+         mcWeights = filename + "_" + var + '_' + str(q) + ".pkl"         
          self.mcclf    .append(pickle.load(gzip.open(mcWeights)))
       if dbg : print "MC   weights : ", mcclf
 
@@ -375,13 +368,47 @@ class quantileRegression:
 
 
 
+      
+   # brute force access to X,Y, y_mc, y_data for debugging in notebooks
+   #
+   # --------------------------------------------------------------------------------
+   #
+   def forDebug(self, x, y, quantiles):#, X, Y, y_mc, y_data ):
+      
+      # quantile regressions features
+      X    = self.df.loc[:,x]
+      # target e.g. y = "R9"
+      Y    = self.df[y]
+      print "Features: X = ", x, " target y = ", y
 
       
+      y_mc   = [] # list storing the n=q predictions on mc   for each event
+      y_data = [] # list storing the n=q predictions on data for each event
+
+      for q in range(0, len(quantiles)):
+         y_mc  .append(self.mcclf[q]  .predict(X))
+         y_data.append(self.dataclf[q].predict(X))
+
+      return X, Y, y_mc, y_data 
+
+   def getDF(self):#, X, Y, y_mc, y_data ):
+      return self.df
+
+   
+
+
+
+
+
+
+
+
+   
    # get the names to be used for X and y and fill the corrected vector
    # 
    # --------------------------------------------------------------------------------
    #
-   def correctY(self, x, y, quantiles):
+   def correctY(self, x, y, quantiles ):
       
       dbg = False
       
@@ -399,7 +426,8 @@ class quantileRegression:
       if dbg : print "Predict MC and DATA for all quantiles"
       y_mc   = [] # list storing the n=q predictions on mc   for each event
       y_data = [] # list storing the n=q predictions on data for each event
-      for q in range(0,len(quantiles)):
+
+      for q in range(0, len(quantiles)):
          y_mc  .append(self.mcclf[q]  .predict(X))
          y_data.append(self.dataclf[q].predict(X))
       if dbg : print " Initial value: Y = ", Y
@@ -408,7 +436,7 @@ class quantileRegression:
       if dbg : print " DATA-regression = ",  y_data
 
       # loop over the events #  <<-- this sucks... eventually should be vectorized, but I don't know how
-      for ievt in range(0,len(Y)): 
+      for ievt in range(0, len(Y)): 
 
          if dbg : print "#evt = ", ievt
          
@@ -424,34 +452,35 @@ class quantileRegression:
             else:
                break
          if q == 0:
-            qmc_low  = 0
+            qmc_low  = 0                               # all shower shapes have a lower bound at 0
             qmc_high = y_mc[0][ievt]
-         if q < len(quantiles):
+         elif q < len(quantiles):
             qmc_low  = y_mc[q-1][ievt]
             qmc_high = y_mc[q ][ievt]
          else:
             qmc_low  = y_mc[q-1][ievt]
-            qmc_high = 1            
+            qmc_high = quantiles[len(quantiles)-1]*1.2 # some variables (e.g. sigmaRR) have values above 1
+                                                       # to set the value for the highest quantile 20% higher
          if dbg : print "mc-quantile    ", q, " --> [ ", qmc_low ,qmc_high, " ]"
-
+         
          #
          # q is the one we find on mc
          if dbg:
             qt = 0 
             while qt < len(quantiles):
-               print "data ", qt, len(quantiles), y_data[qt][ievt],  Y[ievt]
+               print "data ", qt, len(quantiles), y_data[qt][ievt] # ,  Y[ievt]
                qt+=1
          qdata_low  = 0
          qdata_high = 0
          if q == 0:
-            qdata_low  = 0
+            qdata_low  = 0                              # all shower shapes have a lower bound at 0
             qdata_high = y_data[0][ievt]
-         if q < len(quantiles):
+         elif q < len(quantiles):
             qdata_low  = y_data[q-1][ievt]
             qdata_high = y_data[q ][ievt]
          else:
             qdata_low  = y_data[q-1][ievt]
-            qdata_high = 1
+            qdata_high = quantiles[len(quantiles)-1]*1.2 # see comment above for mc            
          if dbg : print "data-quantiles  --> [ ", qdata_low ,qdata_high, " ]"
 
 
@@ -497,6 +526,40 @@ class quantileRegression:
 
 
 
+   # produce a dataset with [X, all-Ycorr]
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   def correctAllY(self, x, ylist, quantiles):
+
+      print 'This will take a while...'
+
+      mcfilename   = "./weights/mc_weights"
+      datafilename = "./weights/data_weights"
+
+      for Y in ylist:
+
+         print "Loading mc weights for ", Y
+         self.loadMcWeights(mcfilename, Y, quantiles)      
+
+         print "Loading data weights for ", Y
+         self.loadDataWeights(datafilename, Y, quantiles)      
+
+         print 'Correcting ', Y
+         self.correctY(x, Y, quantiles )
+
+         #print self.df
+
+      #print 'Final datafame:', self.df
+
+
+
+
+
+
+
+
+      
    # Scatter plots to check the quantiles
    # 
    # --------------------------------------------------------------------------------
