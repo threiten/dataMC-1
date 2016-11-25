@@ -334,11 +334,11 @@ class quantileRegression:
                   
       if dbg : print "Read weights for data for variable ", var
 
-      dataclf  = []
+      self.dataclf = []
       for q in quantiles:
          dataWeights   = filename + "_" + var + '_' + str(q) + ".pkl"
          self.dataclf  .append(pickle.load(gzip.open(dataWeights)))
-      if dbg : print "DATA weights : ", dataclf
+      if dbg : print "DATA weights : ", self.dataclf
 
 
       
@@ -353,7 +353,7 @@ class quantileRegression:
                   
       if dbg : print "Read weights for MC for variable ", var
 
-      mcclf    = []
+      self.mcclf = []
       for q in quantiles:
          mcWeights = filename + "_" + var + '_' + str(q) + ".pkl"         
          self.mcclf    .append(pickle.load(gzip.open(mcWeights)))
@@ -532,24 +532,35 @@ class quantileRegression:
    #
    def correctAllY(self, x, ylist, quantiles):
 
-      print 'This will take a while...'
+      import os.path
 
-      mcfilename   = "./weights/mc_weights"
-      datafilename = "./weights/data_weights"
+      corrTargetsName = 'correctedTargets.h5'
+      if (os.path.exists(corrTargetsName)):
+         print 'Loading corrected targets from : ', corrTargetsName         
+         self.df = pd.read_hdf('correctedTargets.h5', 'df')
+         return
+      
+      else:    
 
-      for Y in ylist:
+         print 'Corrections file (e.g. correctedTargets.h5) does not exists. This will take a while...'
 
-         print "Loading mc weights for ", Y
-         self.loadMcWeights(mcfilename, Y, quantiles)      
+         mcfilename   = "./weights/mc_weights"
+         datafilename = "./weights/data_weights"
+          
+         for Y in ylist:          
+            print "Loading mc weights for ", Y
+            self.loadMcWeights(mcfilename, Y, quantiles)      
 
-         print "Loading data weights for ", Y
-         self.loadDataWeights(datafilename, Y, quantiles)      
+            print "Loading data weights for ", Y
+            self.loadDataWeights(datafilename, Y, quantiles)      
 
-         print 'Correcting ', Y
-         self.correctY(x, Y, quantiles )
+            self.correctY(x, Y, quantiles )
+            #print self.df
 
-         #print self.df
-
+         hdf = pd.HDFStore('correctedTargets.h5')
+         hdf.put('df', self.df)
+         hdf.close()
+         
       #print 'Final datafame:', self.df
 
 
