@@ -282,7 +282,7 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #   
-   def trainQuantile(self, var, alpha, pathWeights):
+   def trainQuantile(self, var, alpha, pathWeights, maxDepth = 3, minLeaf = 9):
 
       # quantile regressions features
       X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
@@ -293,9 +293,9 @@ class quantileRegression:
       #
       print mycolors.green+"Train q = "+mycolors.default, alpha
       clf = GradientBoostingRegressor(loss='quantile', alpha=alpha,
-                                      n_estimators=250, max_depth=3,
-                                      learning_rate=.1, min_samples_leaf=9,
-                                      min_samples_split=9)
+                                      n_estimators=250, max_depth=maxDepth,
+                                      learning_rate=.1, min_samples_leaf=minLeaf,
+                                      min_samples_split=minLeaf)
       t0 = time.time()
       clf.fit(X, Y)
       t1 = time.time()
