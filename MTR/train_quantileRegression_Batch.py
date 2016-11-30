@@ -1,4 +1,5 @@
 import sys
+import os
 from quantileRegression import quantileRegression
 
 # Nevt passing selection
@@ -34,6 +35,9 @@ minLeaf   = int(sys.argv[7])
 qr = quantileRegression(sys.argv[1])
 
 outputDir = "/mnt/t3nfs01/data01/shome/mdonega/dataMC/MTR/weights_MaxDepth_" + str(maxDepth) + "_minLeaf_" + str(minLeaf)
+if (not os.path.exists(outputDir)):
+   print 'Creating output dir:', outputDir
+   os.mkdir(outputDir)
 
 if dataMC == "data":
    qr.loadDF("/mnt/t3nfs01/data01/shome/mdonega/dataMC/nt/double_ele_spring16v2_sync_v1_ichep/",
