@@ -284,11 +284,15 @@ class quantileRegression:
    #   
    def trainQuantile(self, var, alpha, pathWeights, maxDepth = 3, minLeaf = 9):
 
+
+
       # quantile regressions features
       X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       # target
       Y     = self.df[var]
       
+      print pathWeights+"/data_weights_" + var + "_" + str(alpha) + ".pkl"
+
       # train quantile regression
       #
       print mycolors.green+"Train q = "+mycolors.default, alpha
@@ -309,9 +313,9 @@ class quantileRegression:
       print "Save weights"
       outputName = ""
       if (self.dataMC == "data"):
-         outputName = pathWeights+"/data_weights_" + Y + '_' + str(alpha) + ".pkl"
+         outputName = pathWeights+"/data_weights_" + var + "_" + str(alpha) + ".pkl"
       else :
-         outputName = pathWeights+"/mc_weights_" + Y + '_' + str(alpha) + ".pkl"         
+         outputName = pathWeights+"/mc_weights_" + var + "_" + str(alpha) + ".pkl"         
       pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
 
