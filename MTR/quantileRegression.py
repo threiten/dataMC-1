@@ -314,9 +314,9 @@ class quantileRegression:
       df = self.df
       
       if   EBEE == 'EB':
-         df = applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
+         df = self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
       elif EBEE == 'EE':
-         df = applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
+         df = self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
       else:
          print "Traing both EB and EE together"
       
