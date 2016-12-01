@@ -278,18 +278,54 @@ class quantileRegression:
 
 
 
+   # returns a DF satisfying the query (the self.df remains untouched! )
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   def applyCutsToDF(self, var, min, max, inout):
+      df = self.df
+      if inout == 'inside':
+         querystr = '@min < {} & {} < @max'.format(var,var)
+         print min, ' < ', var, ' & ', var, ' < ', max 
+         df = df.query(querystr)
+      elif inout == 'outside':
+         querystr = '{}<@min | @max <{}'.format(var,var)
+         print var, ' < ', min, ' | ', max, ' < ', var 
+         df = df.query(querystr)
+      return df
+
+      
+
+
+
+
+
+
+
+
+
+
    # run the trainings
    # 
    # --------------------------------------------------------------------------------
    #   
-   def trainQuantile(self, var, alpha, pathWeights, maxDepth = 3, minLeaf = 9):
+   def trainQuantile(self, var, EBEE, alpha, pathWeights, maxDepth = 3, minLeaf = 9):
 
-
-
+      df = self.df
+      
+      if   EBEE == 'EB':
+         df = applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
+      elif EBEE == 'EE':
+         df = applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
+      else:
+         print "Traing both EB and EE together"
+      
       # quantile regressions features
-      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      X     = df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       # target
-      Y     = self.df[var]
+      Y     = df[var]
+
+      print X
       
       print pathWeights+"/data_weights_" + var + "_" + str(alpha) + ".pkl"
 
@@ -312,11 +348,60 @@ class quantileRegression:
       y_upper1d=y_upper.ravel()
       print "Save weights"
       outputName = ""
+
+      # QUIIII
       if (self.dataMC == "data"):
-         outputName = pathWeights+"/data_weights_" + var + "_" + str(alpha) + ".pkl"
+         if   EBEE != "":
+            outputName = pathWeights+"/data_weights_" + var + "_" + EBEE + "_" + str(alpha) + ".pkl"
+         else:
+            outputName = pathWeights+"/data_weights_" + var + "_" + str(alpha) + ".pkl"
       else :
-         outputName = pathWeights+"/mc_weights_" + var + "_" + str(alpha) + ".pkl"         
+         if   EBEE != "":
+            outputName = pathWeights+"/mc_weights_" + var + "_" + EBEE + "_" + str(alpha) + ".pkl"
+         else:
+            outputName = pathWeights+"/mc_weights_" + var + "_" + str(alpha) + ".pkl"         
+            
       pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+
+
+
+
+
+
+
+
+
+   # quiii
+   # traing a final regression on the mc Y_corr variables
+   # 
+   # --------------------------------------------------------------------------------
+   #   
+   def trainCorrections(self, X, ylist, quantiles, pathWeights, maxDepth = 3, minLeaf = 9):
+
+      print "First correct all variables"
+      self.correctAllY(X, ylist, quantiles )
+   
+      for Y in ylist:
+         ycorr = Y+"_corr"
+
+         # train regression
+         #
+         print mycolors.green+"Training the final regression for "+mycolors.default, ycorr
+         clf = GradientBoostingRegressor(loss='???????',
+                                         n_estimators=250, max_depth=maxDepth,
+                                         learning_rate=.1, min_samples_leaf=minLeaf,
+                                         min_samples_split=minLeaf)
+         t0 = time.time()
+         clf.fit(X, ycorr)
+         t1 = time.time()
+         print " time = ", t1-t0
+         print "Save weights"
+         outputName = ""
+         if (self.dataMC == "data"):
+            outputName = pathWeights+"/data_weights_final_" + ycorr + "_" + str(alpha) + ".pkl"
+         else :
+            outputName = pathWeights+"/mc_weights_final_" + ycorr + "_" + str(alpha) + ".pkl"         
+         pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
 
 

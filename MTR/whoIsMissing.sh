@@ -2,10 +2,10 @@
 
 k=0.1
 
-ls weights_MaxDepth_10_minLeaf_50  > weights_MaxDepth_10_minLeaf_50.txt
-ls weights_MaxDepth_10_minLeaf_9   > weights_MaxDepth_10_minLeaf_9.txt
-ls weights_MaxDepth_3_minLeaf_50   > weights_MaxDepth_3_minLeaf_50.txt
-ls weights_MaxDepth_3_minLeaf_9    > weights_MaxDepth_3_minLeaf_9.txt
+ls weights/weights_MaxDepth_10_minLeaf_50  > weights_MaxDepth_10_minLeaf_50.txt
+ls weights/weights_MaxDepth_10_minLeaf_9   > weights_MaxDepth_10_minLeaf_9.txt
+ls weights/weights_MaxDepth_3_minLeaf_50   > weights_MaxDepth_3_minLeaf_50.txt
+ls weights/weights_MaxDepth_3_minLeaf_9    > weights_MaxDepth_3_minLeaf_9.txt
 
 for var in  "R9" "S4" "SigmaIeIe" "EtaWidth" "PhiWidth" "CovarianceIphiIphi" "SigmaRR";
 do
