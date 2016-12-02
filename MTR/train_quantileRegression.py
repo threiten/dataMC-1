@@ -40,9 +40,9 @@ qr_data.loadDF("/mnt/t3nfs01/data01/shome/mdonega/dataMC/nt/double_ele_spring16v
 print "Data Frame has ", qr_data.getNEntries(), "entries"
 
 for q in quantiles:
-    qr_data.trainQuantile(Y, "EB", q, outputDir, 3, 9)
-    qr_data.trainQuantile(Y, "EE", q, outputDir, 3, 9)
-    qr_data.trainQuantile(Y, "", q, outputDir, 3, 9)
+    qr_data.trainQuantile(Y, q, outputDir, "EB", 3, 9)
+    qr_data.trainQuantile(Y, q, outputDir, "EE", 3, 9)
+    qr_data.trainQuantile(Y, q, outputDir, ""  , 3, 9)
 
     
 ## MC

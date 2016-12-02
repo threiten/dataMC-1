@@ -167,7 +167,7 @@ class quantileRegression:
          df = data.reset_index()
          #print data
 
-         
+
       if (self.dataMC == "mc" ):
          # no trigger matching on mc
          # use both lead and sublead
@@ -283,17 +283,24 @@ class quantileRegression:
    # --------------------------------------------------------------------------------
    #
    def applyCutsToDF(self, var, min, max, inout):
-      df = self.df
+
+
+      df = self.df       
+
+      querystr = ''
       if inout == 'inside':
          querystr = '@min < {} & {} < @max'.format(var,var)
          print min, ' < ', var, ' & ', var, ' < ', max 
-         df = df.query(querystr)
       elif inout == 'outside':
          querystr = '{}<@min | @max <{}'.format(var,var)
          print var, ' < ', min, ' | ', max, ' < ', var 
-         df = df.query(querystr)
-      return df
 
+      df = df.query(querystr)
+
+      # reset the rows indexing
+      df = df.reset_index()
+
+      self.df = df   
       
 
 
@@ -309,24 +316,20 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #   
-   def trainQuantile(self, var, EBEE, alpha, pathWeights, maxDepth = 3, minLeaf = 9):
+   def trainQuantile(self, var, alpha, pathWeights, EBEE ="", maxDepth = 3, minLeaf = 9):
 
-      df = self.df
-      
       if   EBEE == 'EB':
-         df = self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
+         self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
       elif EBEE == 'EE':
-         df = self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
+         self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
       else:
          print "Traing both EB and EE together"
-      
+         
       # quantile regressions features
-      X     = df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       # target
-      Y     = df[var]
+      Y     = self.df[var]
 
-      print X
-      
       print pathWeights+"/data_weights_" + var + "_" + str(alpha) + ".pkl"
 
       # train quantile regression
@@ -349,15 +352,14 @@ class quantileRegression:
       print "Save weights"
       outputName = ""
 
-      # QUIIII
       if (self.dataMC == "data"):
          if   EBEE != "":
-            outputName = pathWeights+"/data_weights_" + var + "_" + EBEE + "_" + str(alpha) + ".pkl"
+            outputName = pathWeights+"/data_weights_" + EBEE + "_" + var + "_" + str(alpha) + ".pkl"
          else:
             outputName = pathWeights+"/data_weights_" + var + "_" + str(alpha) + ".pkl"
       else :
          if   EBEE != "":
-            outputName = pathWeights+"/mc_weights_" + var + "_" + EBEE + "_" + str(alpha) + ".pkl"
+            outputName = pathWeights+"/mc_weights_" + EBEE + "_" + var + "_" + str(alpha) + ".pkl"
          else:
             outputName = pathWeights+"/mc_weights_" + var + "_" + str(alpha) + ".pkl"         
             
@@ -510,8 +512,8 @@ class quantileRegression:
       # target e.g. y = "R9"
       Y    = self.df[y]
       print "Features: X = ", x, " target y = ", y
+      # print X, Y
 
-      
       if dbg : print "Predict MC and DATA for all quantiles"
       y_mc   = [] # list storing the n=q predictions on mc   for each event
       y_data = [] # list storing the n=q predictions on data for each event
@@ -524,12 +526,13 @@ class quantileRegression:
       if dbg : print " MC-regression = "  ,  y_mc
       if dbg : print " DATA-regression = ",  y_data
 
+         
       # loop over the events #  <<-- this sucks... eventually should be vectorized, but I don't know how
       for ievt in range(0, len(Y)): 
 
          if dbg : print "#evt = ", ievt
          
-         # brute force loop over quantiles predictions for MC
+        # brute force loop over quantiles predictions for MC
          # I would need anyway a loop to copy them in an array to use smarter search
          qmc_low  = 0
          qmc_high = 0
@@ -619,34 +622,57 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #
-   def correctAllY(self, x, ylist, quantiles):
+   def correctAllY(self, x, ylist, quantiles, EBEE=""):
 
-      import os.path
-
-      corrTargetsName = 'correctedTargets.h5'
+      import os.path      
+      corrTargetsName = 'correctedTargets'
+      if   EBEE == 'EB':
+         corrTargetsName += '_EB'
+      if   EBEE == 'EE':
+         corrTargetsName += '_EE'
+      corrTargetsName += '.h5'
       if (os.path.exists(corrTargetsName)):
          print 'Loading corrected targets from : ', corrTargetsName         
-         self.df = pd.read_hdf('correctedTargets.h5', 'df')
+         self.df = pd.read_hdf(corrTargetsName, 'df')
          return
       
-      else:    
+      else:          
+         print 'Corrected variables file (e.g. ', corrTargetsName, ' ) does not exists. This will take a while...'
 
-         print 'Corrections file (e.g. correctedTargets.h5) does not exists. This will take a while...'
-
+         # Here you are cutting out part of the DF !
+         if   EBEE == 'EB':
+            print "Correct EB :"
+            self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
+         elif EBEE == 'EE':
+            print "Correct EE :"
+            self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
+         else:
+            print "Correct both EB and EE together"
+         
          mcfilename   = "./weights/mc_weights"
          datafilename = "./weights/data_weights"
-          
+         if   EBEE == 'EB':
+            mcfilename   = "./weights/mc_weights_EB"
+            datafilename = "./weights/data_weights_EB"
+         elif EBEE == 'EE':
+            mcfilename   = "./weights/mc_weights_EE"
+            datafilename = "./weights/data_weights_EE"
+
          for Y in ylist:          
-            print "Loading mc weights for ", Y
+            print "Loading mc weights for ", Y, " : "
+            print "   ", mcfilename
             self.loadMcWeights(mcfilename, Y, quantiles)      
 
             print "Loading data weights for ", Y
+            print "   ", datafilename
             self.loadDataWeights(datafilename, Y, quantiles)      
 
+            # print self.df
             self.correctY(x, Y, quantiles )
-            #print self.df
 
          hdf = pd.HDFStore('correctedTargets.h5')
+         if EBEE != '':
+            hdf = pd.HDFStore('correctedTargets_'+EBEE+'.h5')
          hdf.put('df', self.df)
          hdf.close()
          
