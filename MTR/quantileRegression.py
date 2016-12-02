@@ -71,6 +71,8 @@ class quantileRegression:
 
    dataclf = []
 
+   predclf = 0
+   
    ptmin  =  20.
    ptmax  =  60.
    etamin = -2.5
@@ -289,11 +291,11 @@ class quantileRegression:
 
       querystr = ''
       if inout == 'inside':
-         querystr = '@min < {} & {} < @max'.format(var,var)
-         print min, ' < ', var, ' & ', var, ' < ', max 
+         querystr = '@min < {} and {} < @max'.format(var,var)
+         print min, ' < ', var, ' and ', var, ' < ', max 
       elif inout == 'outside':
-         querystr = '{}<@min | @max <{}'.format(var,var)
-         print var, ' < ', min, ' | ', max, ' < ', var 
+         querystr = '{}<@min or @max <{}'.format(var,var)
+         print var, ' < ', min, ' or ', max, ' < ', var 
 
       df = df.query(querystr)
 
@@ -373,40 +375,83 @@ class quantileRegression:
 
 
 
-   # quiii
-   # traing a final regression on the mc Y_corr variables
+   # traing a final regression on the mc Y_corr variables.
+   # the user will give (X,Y) and get Y_corr
    # 
    # --------------------------------------------------------------------------------
    #   
-   def trainCorrections(self, X, ylist, quantiles, pathWeights, maxDepth = 3, minLeaf = 9):
+   def trainOnCorrections(self, X, ylist, quantiles, outputPath, maxDepth = 3, minLeaf = 9):
 
-      print "First correct all variables"
-      self.correctAllY(X, ylist, quantiles )
-   
-      for Y in ylist:
-         ycorr = Y+"_corr"
+      print "Correct all variables", ylist
+      # This loads the weights for data and mc, compute the correction and apply it to the variable   
+      self.correctAllY(X, ylist, quantiles, forceComputeCorrections = True )
 
-         # train regression
+      print self.df
+      
+      for y in ylist:         
+
+         X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+         ycorr = y+"_corr"
+         # target
+         Y     = self.df[ycorr]
+
+         
+         # train regression on the corrected variables
          #
          print mycolors.green+"Training the final regression for "+mycolors.default, ycorr
-         clf = GradientBoostingRegressor(loss='???????',
+         clf = GradientBoostingRegressor(loss='ls',
                                          n_estimators=250, max_depth=maxDepth,
                                          learning_rate=.1, min_samples_leaf=minLeaf,
                                          min_samples_split=minLeaf)
          t0 = time.time()
-         clf.fit(X, ycorr)
+         clf.fit(X, Y)
          t1 = time.time()
          print " time = ", t1-t0
          print "Save weights"
          outputName = ""
-         if (self.dataMC == "data"):
-            outputName = pathWeights+"/data_weights_final_" + ycorr + "_" + str(alpha) + ".pkl"
-         else :
-            outputName = pathWeights+"/mc_weights_final_" + ycorr + "_" + str(alpha) + ".pkl"         
+         outputName = outputPath+"/weights_corrections_" + y + ".pkl"
          pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
 
 
+
+
+
+
+
+
+         
+
+   # Apply the corrections regression to Y
+   #
+   # --------------------------------------------------------------------------------
+   #
+   def predictY(self, x, y, filename):
+
+      dbg = True
+
+      # quantile regressions features
+      X     = self.df.loc[:,x]
+      # target
+      Y     = self.df[y]
+
+
+      # get the correction regression weights
+      # e.g filename = "./weightsCorrections/weights_corrections" the quanitle and .pkl are added here
+      if dbg : print "Read weights for MC for variable ", y
+      self.predclf = 0
+      weights = filename + "_" + y + ".pkl"
+      if dbg : print "Correction file : ", weights
+      self.predclf.append(pickle.load(gzip.open(weights)))
+      if dbg : print "Correction weights for ", y, " : ", self.predclf
+      
+      return self.predclf.predict(X)
+      
+
+      
+
+
+      
 
 
 
@@ -449,41 +494,6 @@ class quantileRegression:
          mcWeights = filename + "_" + var + '_' + str(q) + ".pkl"         
          self.mcclf    .append(pickle.load(gzip.open(mcWeights)))
       if dbg : print "MC   weights : ", mcclf
-
-
-
-
-
-
-
-
-
-
-      
-   # brute force access to X,Y, y_mc, y_data for debugging in notebooks
-   #
-   # --------------------------------------------------------------------------------
-   #
-   def forDebug(self, x, y, quantiles):#, X, Y, y_mc, y_data ):
-      
-      # quantile regressions features
-      X    = self.df.loc[:,x]
-      # target e.g. y = "R9"
-      Y    = self.df[y]
-      print "Features: X = ", x, " target y = ", y
-
-      
-      y_mc   = [] # list storing the n=q predictions on mc   for each event
-      y_data = [] # list storing the n=q predictions on data for each event
-
-      for q in range(0, len(quantiles)):
-         y_mc  .append(self.mcclf[q]  .predict(X))
-         y_data.append(self.dataclf[q].predict(X))
-
-      return X, Y, y_mc, y_data 
-
-   def getDF(self):#, X, Y, y_mc, y_data ):
-      return self.df
 
    
 
@@ -622,7 +632,7 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #
-   def correctAllY(self, x, ylist, quantiles, EBEE=""):
+   def correctAllY(self, x, ylist, quantiles, forceComputeCorrections = False, EBEE=""):
 
       import os.path      
       corrTargetsName = 'correctedTargets'
@@ -631,7 +641,8 @@ class quantileRegression:
       if   EBEE == 'EE':
          corrTargetsName += '_EE'
       corrTargetsName += '.h5'
-      if (os.path.exists(corrTargetsName)):
+      
+      if ((os.path.exists(corrTargetsName)) and not( forceComputeCorrections )) :
          print 'Loading corrected targets from : ', corrTargetsName         
          self.df = pd.read_hdf(corrTargetsName, 'df')
          return
@@ -762,3 +773,37 @@ class quantileRegression:
       plot = plot2D(xLabel, yLabel, xx  ,yy, xxbins,  meanyyxx, outfile)
       
       return plot
+
+
+
+
+
+
+
+
+
+
+   # brute force access to X,Y, y_mc, y_data for debugging in notebooks
+   #
+   # --------------------------------------------------------------------------------
+   #
+   def forDebug(self, x, y, quantiles):#, X, Y, y_mc, y_data ):
+      
+      # quantile regressions features
+      X    = self.df.loc[:,x]
+      # target e.g. y = "R9"
+      Y    = self.df[y]
+      print "Features: X = ", x, " target y = ", y
+
+      
+      y_mc   = [] # list storing the n=q predictions on mc   for each event
+      y_data = [] # list storing the n=q predictions on data for each event
+
+      for q in range(0, len(quantiles)):
+         y_mc  .append(self.mcclf[q]  .predict(X))
+         y_data.append(self.dataclf[q].predict(X))
+
+      return X, Y, y_mc, y_data 
+
+   def getDF(self):#, X, Y, y_mc, y_data ):
+      return self.df
