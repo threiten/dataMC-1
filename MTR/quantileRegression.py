@@ -71,8 +71,6 @@ class quantileRegression:
 
    dataclf = []
 
-   predclf = 0
-   
    ptmin  =  20.
    ptmax  =  60.
    etamin = -2.5
@@ -117,16 +115,24 @@ class quantileRegression:
       for t in self.trees:
          trees.append(self.treeDir+t)
       self.trees = trees
-      # print trees
+      print trees
 
       # read the trees into a dataframe
       #
-      print "Reading trees"
+      print "Adding trees into a DataFrame"
+      i = 0
       for t in self.trees:
-         df = rpd.read_root(fname,t,columns=recoBranches)
+         print "  adding ", t
+         if i == 0:            
+            df = rpd.read_root(fname,t,columns=recoBranches)
+         else:
+            df = pd.concat([df, rpd.read_root(fname,t,columns=recoBranches)])
+         print df.count()
+         i+=1
       print "Number of events  "
       print df.count()
-      
+      df = df.reset_index() # otherwise it will keep the index of each of the added dataframe
+      # print df 
 
       if (self.dataMC == "data" ):
          # trigger matching logic :         
@@ -134,6 +140,8 @@ class quantileRegression:
          # get the indices of the sublead matching the trigger and use them to select the lead
          # NB: I can use the event twice if both lead and sublead trigger
 
+         print "Count df"
+         print df.count()
          #
          # the trigger decision is stored as a float -> convert it to bool
          # print df["leadHLT_Ele27_WPTight_Gsf_vMatch"].sum()
@@ -144,30 +152,35 @@ class quantileRegression:
          idx_trgSublead = df[df["subleadHLT_Ele27_WPTight_Gsf_vMatch"]].index.tolist()
          print "# lead trig   = ", len(idx_trgLead)
          print "# sublead trg = ", len(idx_trgSublead)
-         
+
          
          # if the lead triggered use the sublead
          #
+         print "Data Sublead"
          dataSublead = df[ self.evtBranches + self.recoSubleadBranches ]
          dataSublead = dataSublead.loc[idx_trgLead]
          dataSublead.columns = uniformColumnsNames
-         #print dataSublead.count()
+         print "Count sublead"
+         print dataSublead.count()
          #
          # if the sublead triggered use the lead
          #
+         print "Data Lead"
          dataLead    = df[ self.evtBranches + self.recoLeadBranches ]
          dataLead    = dataLead.loc[idx_trgSublead]
          dataLead.columns = uniformColumnsNames
-         #print dataLead.count()
+         print "Count lead"
+         print dataLead.count()
          
          
          # concatenate leading and subleadind
          frames = [dataLead, dataSublead]
          data = pd.concat(frames)
-         #print data.count()
+         print "Data count"
+         print data.count()
          # reset the rows indexing
          df = data.reset_index()
-         #print data
+         # print df
 
 
       if (self.dataMC == "mc" ):
@@ -175,25 +188,28 @@ class quantileRegression:
          # use both lead and sublead
          dataSublead = df[ self.evtBranches + self.recoSubleadBranches ]
          dataSublead.columns = uniformColumnsNames
-         #print dataSublead.count()
+         print "SubLead "
+         print dataSublead.count()
          #
          # if the sublead triggered use the lead
          #
          dataLead    = df[ self.evtBranches + self.recoLeadBranches ]
          dataLead.columns = uniformColumnsNames
-         #print dataLead.count()
+         print "Lead "
+         print dataLead.count()
          
          
          # concatenate leading and subleadind
          frames = [dataLead, dataSublead]
          data = pd.concat(frames)
-         #print data.count()
+         print data.count()
          # reset the rows indexing
          df = data.reset_index()
-         #print data
+         print data.count()
 
-               
-      # print df
+
+      print "Count final dataset"
+      print df.count()
          
       # apply basic selection
       #
@@ -376,7 +392,7 @@ class quantileRegression:
 
 
    # traing a final regression on the mc Y_corr variables.
-   # the user will give (X,Y) and get Y_corr
+   # To use it, the user will give (X,Y) and get Y_corr.
    # 
    # --------------------------------------------------------------------------------
    #   
@@ -384,17 +400,18 @@ class quantileRegression:
 
       print "Correct all variables", ylist
       # This loads the weights for data and mc, compute the correction and apply it to the variable   
-      self.correctAllY(X, ylist, quantiles, forceComputeCorrections = True )
+      self.correctAllY(X, ylist, quantiles )
 
       print self.df
       
+      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       for y in ylist:         
-
-         X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
          ycorr = y+"_corr"
          # target
          Y     = self.df[ycorr]
 
+         print X
+         print Y
          
          # train regression on the corrected variables
          #
@@ -403,12 +420,20 @@ class quantileRegression:
                                          n_estimators=250, max_depth=maxDepth,
                                          learning_rate=.1, min_samples_leaf=minLeaf,
                                          min_samples_split=minLeaf)
+
+#         clf = AdaBoostRegressor(DecisionTreeRegressor(max_depth=4),
+#                                 n_estimators=300)
+
+
+
          t0 = time.time()
          clf.fit(X, Y)
          t1 = time.time()
          print " time = ", t1-t0
+
+         self.mcclf  =clf  # this is for debugging only
+         
          print "Save weights"
-         outputName = ""
          outputName = outputPath+"/weights_corrections_" + y + ".pkl"
          pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -439,13 +464,12 @@ class quantileRegression:
       # get the correction regression weights
       # e.g filename = "./weightsCorrections/weights_corrections" the quanitle and .pkl are added here
       if dbg : print "Read weights for MC for variable ", y
-      self.predclf = 0
       weights = filename + "_" + y + ".pkl"
       if dbg : print "Correction file : ", weights
-      self.predclf.append(pickle.load(gzip.open(weights)))
-      if dbg : print "Correction weights for ", y, " : ", self.predclf
-      
-      return self.predclf.predict(X)
+      predclf = pickle.load(gzip.open(weights))
+      if dbg : print "Correction weights for ", y, " : ", predclf
+
+      return predclf.predict(X)
       
 
       
@@ -681,11 +705,11 @@ class quantileRegression:
             # print self.df
             self.correctY(x, Y, quantiles )
 
-         hdf = pd.HDFStore('correctedTargets.h5')
-         if EBEE != '':
-            hdf = pd.HDFStore('correctedTargets_'+EBEE+'.h5')
-         hdf.put('df', self.df)
-         hdf.close()
+#QUIII         hdf = pd.HDFStore('correctedTargets.h5')
+#QUIII         if EBEE != '':
+#QUIII            hdf = pd.HDFStore('correctedTargets_'+EBEE+'.h5')
+#QUIII         hdf.put('df', self.df)
+#QUIII         hdf.close()
          
       #print 'Final datafame:', self.df
 
@@ -807,3 +831,7 @@ class quantileRegression:
 
    def getDF(self):#, X, Y, y_mc, y_data ):
       return self.df
+
+
+   def getCLF(self):#, X, Y, y_mc, y_data ):
+      return self.mcclf

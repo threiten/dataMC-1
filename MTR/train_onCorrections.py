@@ -1,7 +1,7 @@
-import sys
 from quantileRegression import quantileRegression
 import pandas as pd
 import numpy as np
+import sys
 
 # Nevt passing selection
 # mc   4545316 : train on 2000000
@@ -25,7 +25,7 @@ class mycolors:
 #
 
 # Variable you want to correct
-ylist = ["R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
+ylist = ["S4"] # ["R9" , "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
 
 # Input variables used for the regression
 X = ['Pt', 'ScEta', 'Phi', 'rho']  # <<-- list
