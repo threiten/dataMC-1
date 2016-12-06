@@ -248,11 +248,16 @@ class quantileRegression:
       df.reset_index(drop=True, inplace=True)
 
       # print df
-
       self.df = df
 
       print "DataFrame size = ", len(self.df.index)
 
+      # save the DF locally for future use
+      dfname =  'df_' + self.dataMC + '_' + str(start) + '-' + str(stop) + '.h5'
+      hdf = pd.HDFStore(dfname)
+      hdf.put('df', self.df)
+      hdf.close()
+         
 
 
 
@@ -261,6 +266,30 @@ class quantileRegression:
 
 
       
+
+   # load the dataframe from an already existing h5 file
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   def loadDFh5(self, h5name):
+
+      import os.path
+      if os.path.exists(h5name):
+         print 'Loading corrected targets from : ', h5name
+         self.df = pd.read_hdf(h5name, 'df')
+      else:
+         print "The h5 file ", h5name, " does not exist"
+
+
+
+
+
+
+
+
+
+
+         
    # geat the array of y
    # 
    # --------------------------------------------------------------------------------
