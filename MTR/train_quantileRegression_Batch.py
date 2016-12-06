@@ -29,13 +29,12 @@ print "Quantile = ", quantiles
 startEvt = int(sys.argv[4])
 stopEvt  = int(sys.argv[5])
 print "Events in [", startEvt, ", ", stopEvt, "]"
-EBEE      = int(sys.argv[6])
-maxDepth  = int(sys.argv[7])
-minLeaf   = int(sys.argv[8])
+imaxDepth  = int(sys.argv[6])
+iminLeaf   = int(sys.argv[7])
 
 qr = quantileRegression(sys.argv[1])
 
-outputDir = "/mnt/t3nfs01/data01/shome/mdonega/dataMC/MTR/weights_MaxDepth_" + str(maxDepth) + "_minLeaf_" + str(minLeaf)
+outputDir = "/mnt/t3nfs01/data01/shome/mdonega/dataMC/MTR/weights_MaxDepth_" + str(imaxDepth) + "_minLeaf_" + str(iminLeaf)
 if (not os.path.exists(outputDir)):
    print 'Creating output dir:', outputDir
    os.mkdir(outputDir)
@@ -46,7 +45,7 @@ if dataMC == "data":
              ["Data_13TeV_EBHighR9", "Data_13TeV_EBLowR9", "Data_13TeV_EEHighR9", "Data_13TeV_EELowR9" ],
              startEvt, stopEvt, 12345)
    for q in quantiles:
-      qr.trainQuantile(Y, q, outputDir, EBEE, maxDepth, minLeaf)
+      qr.trainQuantile(Y, q, outputDir, maxDepth = imaxDepth, minLeaf = iminLeaf)
 
 elif dataMC == "mc":
    qr.loadDF("/mnt/t3nfs01/data01/shome/mdonega/dataMC/nt/double_ele_spring16v2_sync_v1_mc/",
@@ -54,7 +53,7 @@ elif dataMC == "mc":
              ["DYToEE_powheg_13TeV_EBHighR9", "DYToEE_powheg_13TeV_EBLowR9", "DYToEE_powheg_13TeV_EEHighR9", "DYToEE_powheg_13TeV_EELowR9" ],
              startEvt, stopEvt, 12345)
    for q in quantiles:
-      qr.trainQuantile(Y, q, outputDir, EBEE, maxDepth, minLeaf)
+      qr.trainQuantile(Y, q, outputDir, maxDepth = imaxDepth, minLeaf = iminLeaf)
 
 else: print " ERROR: choose data or mc"
 
