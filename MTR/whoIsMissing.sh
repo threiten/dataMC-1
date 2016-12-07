@@ -27,3 +27,8 @@ do
 	done
     done
 done
+
+rm weights_MaxDepth_10_minLeaf_50.txt
+rm weights_MaxDepth_10_minLeaf_9.txt 
+rm weights_MaxDepth_3_minLeaf_50.txt 
+rm weights_MaxDepth_3_minLeaf_9.txt  

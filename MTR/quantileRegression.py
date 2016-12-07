@@ -53,6 +53,8 @@ class quantileRegression:
    evtBranches         = ["rho", "nvtx"]
 
    trgBranches         = [ "leadHLT_Ele27_WPTight_Gsf_vMatch", "subleadHLT_Ele27_WPTight_Gsf_vMatch" ]
+
+   eleMatchBranches    = [ "leadEleMatch", "subleadEleMatch" ]
    
    recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
                           "leadR9", "leadS4", "leadSigmaIeIe", "leadEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR"]
@@ -60,8 +62,8 @@ class quantileRegression:
    recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
                           "subleadR9", "subleadS4", "subleadSigmaIeIe", "subleadEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR"]
    
-   data_recoBranches   = evtBranches  + trgBranches + recoLeadBranches + recoSubleadBranches
-   mc_recoBranches     = evtBranches  + recoLeadBranches + recoSubleadBranches
+   data_recoBranches   = evtBranches  + trgBranches + eleMatchBranches + recoLeadBranches + recoSubleadBranches
+   mc_recoBranches     = evtBranches  +               eleMatchBranches + recoLeadBranches + recoSubleadBranches
 
    df = 0
 
@@ -71,8 +73,8 @@ class quantileRegression:
 
    dataclf = []
 
-   ptmin  =  20.
-   ptmax  =  60.
+   ptmin  =  25.
+   ptmax  =  150.
    etamin = -2.5
    etamax =  2.5
    phimin = -3.14
@@ -90,6 +92,8 @@ class quantileRegression:
    # --------------------------------------------------------------------------------
    #
    def loadDF(self, iDir, tDir, t, start, stop, rndm = 12345):
+
+      dbg = False
       
       self.inputDir = iDir
       self.treeDir  = tDir
@@ -127,7 +131,7 @@ class quantileRegression:
             df = rpd.read_root(fname,t,columns=recoBranches)
          else:
             df = pd.concat([df, rpd.read_root(fname,t,columns=recoBranches)])
-         print df.count()
+         if dbg : print df.count()
          i+=1
       print "Number of events  "
       print df.count()
@@ -141,11 +145,23 @@ class quantileRegression:
          # NB: I can use the event twice if both lead and sublead trigger
 
          print "Count df"
-         print df.count()
+         if dbg : print df.count()
          #
-         # the trigger decision is stored as a float -> convert it to bool
+         # Select only lead / sublead candidates with eleId=isHLTsafe
+         if dbg : print df["leadEleMatch"].sum()
+         if dbg : print df["subleadEleMatch"].sum()
+         # the matching decision is stored as a float -> convert it to bool
+         df.leadEleMatch   = df.leadEleMatch.astype(bool)
+         df.subleadEleMatch = df.subleadEleMatch.astype(bool)
+         idx_eleMatchLead    = df[df["leadEleMatch"]].index.tolist()
+         idx_eleMatchSublead = df[df["subleadEleMatch"]].index.tolist()
+         print "# lead eleMatch    = ", len(idx_eleMatchLead)
+         print "# sublead eleMatch = ", len(idx_eleMatchSublead)
+         
+         #
          # print df["leadHLT_Ele27_WPTight_Gsf_vMatch"].sum()
          # print df["subleadHLT_Ele27_WPTight_Gsf_vMatch"].sum()
+         # the trigger decision is stored as a float -> convert it to bool
          df.leadHLT_Ele27_WPTight_Gsf_vMatch    = df.leadHLT_Ele27_WPTight_Gsf_vMatch.astype(bool)
          df.subleadHLT_Ele27_WPTight_Gsf_vMatch = df.subleadHLT_Ele27_WPTight_Gsf_vMatch.astype(bool)
          idx_trgLead    = df[df["leadHLT_Ele27_WPTight_Gsf_vMatch"]].index.tolist()
@@ -153,59 +169,72 @@ class quantileRegression:
          print "# lead trig   = ", len(idx_trgLead)
          print "# sublead trg = ", len(idx_trgSublead)
 
+         #
+         # select trigger AND ele safe match for lead / sublead
+         idx_trgEleMatchLead    = np.intersect1d(idx_trgLead,    idx_eleMatchLead)
+         idx_trgEleMatchSublead = np.intersect1d(idx_trgSublead, idx_eleMatchSublead) 
+         print "# lead trig and eleMatch    = ", len(idx_trgEleMatchLead)
+         print "# sublead trig and eleMatch = ", len(idx_trgEleMatchSublead)
          
          # if the lead triggered use the sublead
          #
          print "Data Sublead"
          dataSublead = df[ self.evtBranches + self.recoSubleadBranches ]
-         dataSublead = dataSublead.loc[idx_trgLead]
+         dataSublead = dataSublead.loc[idx_trgEleMatchLead]
          dataSublead.columns = uniformColumnsNames
-         print "Count sublead"
          print dataSublead.count()
          #
          # if the sublead triggered use the lead
          #
          print "Data Lead"
          dataLead    = df[ self.evtBranches + self.recoLeadBranches ]
-         dataLead    = dataLead.loc[idx_trgSublead]
+         dataLead    = dataLead.loc[idx_trgEleMatchSublead]
          dataLead.columns = uniformColumnsNames
-         print "Count lead"
          print dataLead.count()
          
-         
+         #
          # concatenate leading and subleadind
          frames = [dataLead, dataSublead]
          data = pd.concat(frames)
-         print "Data count"
-         print data.count()
+         if dbg :
+            print "Data count"
+            print data.count()
          # reset the rows indexing
          df = data.reset_index()
-         # print df
+         if dbg : print df
 
 
       if (self.dataMC == "mc" ):
-         # no trigger matching on mc
-         # use both lead and sublead
+         # no trigger matching on mc but still require eleId=isHLTsafe
+         # print df["leadEleMatch"].sum()
+         # print df["subleadEleMatch"].sum()
+         # the matching decision is stored as a float -> convert it to bool
+         df.leadEleMatch   = df.leadEleMatch.astype(bool)
+         df.subleadEleMatch = df.subleadEleMatch.astype(bool)
+         idx_eleMatchLead    = df[df["leadEleMatch"]].index.tolist()
+         idx_eleMatchSublead = df[df["subleadEleMatch"]].index.tolist()
+         print "# lead eleMatch    = ", len(idx_eleMatchLead)
+         print "# sublead eleMatch = ", len(idx_eleMatchSublead)
+
+         print "MC Sublead"
          dataSublead = df[ self.evtBranches + self.recoSubleadBranches ]
+         dataSublead = dataSublead.loc[idx_eleMatchLead]
          dataSublead.columns = uniformColumnsNames
-         print "SubLead "
          print dataSublead.count()
          #
-         # if the sublead triggered use the lead
-         #
+         print "MC Lead"
          dataLead    = df[ self.evtBranches + self.recoLeadBranches ]
+         dataLead    = dataLead.loc[idx_eleMatchSublead]
          dataLead.columns = uniformColumnsNames
-         print "Lead "
          print dataLead.count()
-         
-         
+         # 
+
          # concatenate leading and subleadind
          frames = [dataLead, dataSublead]
          data = pd.concat(frames)
-         print data.count()
          # reset the rows indexing
          df = data.reset_index()
-         print data.count()
+         if dbg : print data.count()
 
 
       print "Count final dataset"
@@ -749,11 +778,11 @@ class quantileRegression:
             # print self.df
             self.correctY(x, Y, quantiles )
 
-#QUIII         hdf = pd.HDFStore('correctedTargets.h5')
-#QUIII         if EBEE != '':
-#QUIII            hdf = pd.HDFStore('correctedTargets_'+EBEE+'.h5')
-#QUIII         hdf.put('df', self.df)
-#QUIII         hdf.close()
+         hdf = pd.HDFStore('correctedTargets.h5')
+         if EBEE != '':
+            hdf = pd.HDFStore('correctedTargets_'+EBEE+'.h5')
+         hdf.put('df', self.df)
+         hdf.close()
          
       #print 'Final datafame:', self.df
 
