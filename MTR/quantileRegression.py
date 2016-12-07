@@ -271,18 +271,33 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #
-   def loadDFh5(self, h5name):
+   def loadDFh5(self, h5name, start, stop):
 
+      df = 0
       import os.path
       if os.path.exists(h5name):
-         print 'Loading corrected targets from : ', h5name
-         self.df = pd.read_hdf(h5name, 'df')
+         print 'Loading dataframe from : ', h5name
+         df = pd.read_hdf(h5name, 'df')
       else:
          print "The h5 file ", h5name, " does not exist"
+         return
 
+      # Select a subset of events
+      if   start == -1 :
+         print "Invalid start-evt = -1 "
+         return
+      if stop  == -1 :
+         stop = len(df.index)
 
+      print mycolors.green+"Selecting events",mycolors.default, " [", start, ", ", stop, "]  out of ", len(df.index)
+      # index = index[start:stop]
+      df = df[start:stop]
 
+      # df = df.ix[index]
+      df.reset_index()
 
+      self.df = df
+      print df.count()
 
 
 
