@@ -494,11 +494,6 @@ class quantileRegression:
                                          learning_rate=.1, min_samples_leaf=minLeaf,
                                          min_samples_split=minLeaf)
 
-#         clf = AdaBoostRegressor(DecisionTreeRegressor(max_depth=4),
-#                                 n_estimators=300)
-
-
-
          t0 = time.time()
          clf.fit(X, Y)
          t1 = time.time()
@@ -572,6 +567,14 @@ class quantileRegression:
          dataWeights   = filename + "_" + var + '_' + str(q) + ".pkl"
          self.dataclf  .append(pickle.load(gzip.open(dataWeights)))
       if dbg : print "DATA weights : ", self.dataclf
+
+
+
+
+
+
+
+
 
 
       

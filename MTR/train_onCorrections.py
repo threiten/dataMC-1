@@ -25,7 +25,7 @@ class mycolors:
 #
 
 # Variable you want to correct
-ylist = ["S4"] # ["R9" , "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
+ylist = ["R9"] # ["R9" , "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
 
 # Input variables used for the regression
 X = ['Pt', 'ScEta', 'Phi', 'rho']  # <<-- list
