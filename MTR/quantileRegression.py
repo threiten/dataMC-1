@@ -469,22 +469,22 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #   
-   def trainOnCorrections(self, X, ylist, quantiles, outputPath, maxDepth = 3, minLeaf = 9):
-
-      print "Correct all variables", ylist
-      # This loads the weights for data and mc, compute the correction and apply it to the variable   
-      self.correctAllY(X, ylist, quantiles )
-
-      print self.df
+   def trainOnCorrections(self, x, ylist, quantiles, outputPath, maxDepth = 3, minLeaf = 9):
       
-      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      print "Correct all variables", ylist
+      # This loads the weights for data and mc, compute the correction and apply it to the variable
+      self.correctAllY(x, ylist, quantiles )      
+      # print self.df
+      
+      x4vars = x
       for y in ylist:         
-         ycorr = y+"_corr"
-         # target
-         Y     = self.df[ycorr]
-
-         print X
-         print Y
+         
+         x = x4vars + [y]
+         X     = self.df.loc[:,x]
+         ycorr = y+"_corr"                                                          
+         # target as the difference between the corrected and the non corrected
+         Y     = self.df[ycorr]-self.df[y]
+         print "Training on ", x, " for ", ycorr, " - " , y
          
          # train regression on the corrected variables
          #
@@ -493,20 +493,18 @@ class quantileRegression:
                                          n_estimators=250, max_depth=maxDepth,
                                          learning_rate=.1, min_samples_leaf=minLeaf,
                                          min_samples_split=minLeaf)
-
+         
          t0 = time.time()
          clf.fit(X, Y)
          t1 = time.time()
          print " time = ", t1-t0
-
-         self.mcclf  =clf  # this is for debugging only
          
+         # self.mcclf  =clf  # this is for debugging only
+        
          print "Save weights"
          outputName = outputPath+"/weights_corrections_" + y + ".pkl"
          pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-
-
-
+         
 
 
 
@@ -526,7 +524,7 @@ class quantileRegression:
       # quantile regressions features
       X     = self.df.loc[:,x]
       # target
-      Y     = self.df[y]
+      Y     = self.df.loc[:,y]
 
 
       # get the correction regression weights

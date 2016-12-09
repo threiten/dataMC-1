@@ -25,7 +25,7 @@ class mycolors:
 #
 
 # Variable you want to correct
-ylist = ["R9"] # ["R9" , "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
+ylist = ["R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
 
 # Input variables used for the regression
 X = ['Pt', 'ScEta', 'Phi', 'rho']  # <<-- list
@@ -40,7 +40,7 @@ qr_mc = quantileRegression("mc")
 # This is what you want to correct
 print "Load the mc dataframe"
 startEvtmc = 0      
-stopEvtmc  = 1500000 
+stopEvtmc  = 2000000 
 qr_mc.loadDF("/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_mc/",
              "cicNoSigmaIetaIeta/trees/",
              ["DYToEE_powheg_13TeV_EBHighR9", "DYToEE_powheg_13TeV_EBLowR9", "DYToEE_powheg_13TeV_EEHighR9", "DYToEE_powheg_13TeV_EELowR9" ],
