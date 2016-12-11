@@ -25,7 +25,8 @@ class mycolors:
 #
 
 # Variable you want to correct
-ylist = ["R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
+# ylist = ["R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
+ylist = [ "SigmaIeIe" ]
 
 # Input variables used for the regression
 X = ['Pt', 'ScEta', 'Phi', 'rho']  # <<-- list
@@ -49,7 +50,7 @@ qr_mc.loadDF("/Users/mauro/CMS/Physics/dataMC/nt/double_ele_spring16v2_sync_v1_m
 
 print mycolors.green+"Training corrections regression "+mycolors.default
 outputPath = "./weightsCorrections/"
-qr_mc.trainOnCorrections(X, ylist, quantiles, outputPath, maxDepth = 3, minLeaf = 9)
+qr_mc.trainOnCorrections(X, ylist, quantiles, outputPath, maxDepth = 10, minLeaf = 9)
 
 print "DONE!"
       

@@ -57,11 +57,15 @@ class quantileRegression:
    eleMatchBranches    = [ "leadEleMatch", "subleadEleMatch" ]
    
    recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
-                          "leadR9", "leadS4", "leadSigmaIeIe", "leadEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR"]
-   
+                          "leadR9", "leadS4", "leadSigmaIeIe", "leadEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
+                          'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', 'leadScPreshowerEnergy',
+                          'leadPhoIDMVA']
+
    recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
-                          "subleadR9", "subleadS4", "subleadSigmaIeIe", "subleadEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR"]
-   
+                          "subleadR9", "subleadS4", "subleadSigmaIeIe", "subleadEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",
+                          'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', 'subleadChIso03', 'subleadChIso03worst', 'leadScPreshowerEnergy',
+                          'subLeadPhoIDMVA']
+
    data_recoBranches   = evtBranches  + trgBranches + eleMatchBranches + recoLeadBranches + recoSubleadBranches
    mc_recoBranches     = evtBranches  +               eleMatchBranches + recoLeadBranches + recoSubleadBranches
 
@@ -111,8 +115,10 @@ class quantileRegression:
       #
       uniformColumnsNames = ["rho", "nvtx" ,                       
                              "Pt", "ScEta", "Phi",
-                             "R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR"]
-      
+                             "R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR" ,
+                             'ScEnergy', 'CovarianceIetaIphi', 'PhoIso03', 'ChIso03', 'ChIso03worst' ,'ScPreshowerEnergy',
+                             'PhoIDMVA']
+                                                                                
       # attach the tree structure to the tree names
       #
       trees = []
