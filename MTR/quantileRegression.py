@@ -426,8 +426,24 @@ class quantileRegression:
       X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       # target
       Y     = self.df[var]
+      #   The isolation variables have a discrete single value at zero and then a smooth distribution
+      #   To avoid degeneracies in the quantile matching I artificially smear them subracting rho
+      #   (like a PU correction)
+      if var == "PhoIso03":
+         self.df['PhoIso03rho'] = self.df['PhoIso03'] - 0.1*self.df['rho']
+         Y = self.df['PhoIso03rho']
+         var = var +"rho"
+      if var == "ChIso03":
+         self.df['ChIso03rho'] = self.df['ChIso03'] - 0.1*self.df['rho']
+         Y = self.df['ChIso03rho']
+         var = var +"rho"
+      if var == "ChIso03worst":
+         self.df['ChIso03rhoworst'] = self.df['ChIso03worst'] - 0.1*self.df['rho']
+         Y = self.df['ChIso03rhoworst']
+         var = var +"rho"
 
       print pathWeights+"/data_weights_" + var + "_" + str(alpha) + ".pkl"
+      print pathWeights+"/mc_weights_" + var + "_" + str(alpha) + ".pkl"
 
       # train quantile regression
       #
@@ -448,6 +464,7 @@ class quantileRegression:
       y_upper1d=y_upper.ravel()
       print "Save weights"
       outputName = ""
+
 
       if (self.dataMC == "data"):
          if   EBEE != "":
@@ -628,6 +645,9 @@ class quantileRegression:
       print "Features: X = ", x, " target y = ", y
       # print X, Y
 
+      if y == 'PhoIso03' or y == 'ChIso03' or y == 'ChIso03worst':
+         Y = Y - 0.1*self.df['rho']
+      
       if dbg : print "Predict MC and DATA for all quantiles"
       y_mc   = [] # list storing the n=q predictions on mc   for each event
       y_data = [] # list storing the n=q predictions on data for each event
@@ -697,6 +717,13 @@ class quantileRegression:
 
          y_tmp.append(y_corr)
          
+
+      #   The isolation variables have a discrete single value at zero and then a smooth distribution
+      #   To avoid degeneracies in the quantile matching I artificially smear them subracting rho
+      #   (like a PU correction)
+      if y == "PhoIso03" or y == "ChIso03" or y == "ChIso03worst":
+         y_tmp = y_tmp + 0.1*self.df['rho']
+
       #self.y_corr = y_tmp
       ycorr = y+"_corr"
       self.df[ycorr] = y_tmp
@@ -773,14 +800,18 @@ class quantileRegression:
             mcfilename   = "./weights/mc_weights_EE"
             datafilename = "./weights/data_weights_EE"
 
-         for Y in ylist:          
-            print "Loading mc weights for ", Y, " : "
-            print "   ", mcfilename
-            self.loadMcWeights(mcfilename, Y, quantiles)      
+         for Y in ylist:
 
-            print "Loading data weights for ", Y
+            if Y == 'PhoIso03' or Y == 'ChIso03' or Y == 'ChIso03worst':
+               Yrho = Y + 'rho'
+         
+            print "Loading mc weights for ", Yrho, " : "
+            print "   ", mcfilename
+            self.loadMcWeights(mcfilename, Yrho, quantiles)      
+
+            print "Loading data weights for ", Yrho
             print "   ", datafilename
-            self.loadDataWeights(datafilename, Y, quantiles)      
+            self.loadDataWeights(datafilename, Yrho, quantiles)      
 
             # print self.df
             self.correctY(x, Y, quantiles )
