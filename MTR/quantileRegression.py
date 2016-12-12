@@ -442,9 +442,6 @@ class quantileRegression:
          Y = self.df['ChIso03rhoworst']
          var = var +"rho"
 
-      print pathWeights+"/data_weights_" + var + "_" + str(alpha) + ".pkl"
-      print pathWeights+"/mc_weights_" + var + "_" + str(alpha) + ".pkl"
-
       # train quantile regression
       #
       print mycolors.green+"Train q = "+mycolors.default, alpha
@@ -476,6 +473,8 @@ class quantileRegression:
             outputName = pathWeights+"/mc_weights_" + EBEE + "_" + var + "_" + str(alpha) + ".pkl"
          else:
             outputName = pathWeights+"/mc_weights_" + var + "_" + str(alpha) + ".pkl"         
+
+      print outputName
             
       pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
