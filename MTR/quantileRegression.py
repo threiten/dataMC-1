@@ -801,19 +801,20 @@ class quantileRegression:
 
          for Y in ylist:
 
+            Yvar = Y
             if Y == 'PhoIso03' or Y == 'ChIso03' or Y == 'ChIso03worst':
-               Yrho = Y + 'rho'
+               Y = Y + 'rho'
          
-            print "Loading mc weights for ", Yrho, " : "
+            print "Loading mc weights for ", Y, " : "
             print "   ", mcfilename
-            self.loadMcWeights(mcfilename, Yrho, quantiles)      
+            self.loadMcWeights(mcfilename, Y, quantiles)      
 
-            print "Loading data weights for ", Yrho
+            print "Loading data weights for ", Y
             print "   ", datafilename
-            self.loadDataWeights(datafilename, Yrho, quantiles)      
+            self.loadDataWeights(datafilename, Y, quantiles)      
 
             # print self.df
-            self.correctY(x, Y, quantiles )
+            self.correctY(x, Yvar, quantiles )
 
          hdf = pd.HDFStore('correctedTargets.h5')
          if EBEE != '':
