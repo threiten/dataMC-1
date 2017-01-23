@@ -91,20 +91,31 @@ class Corrector:
                 histos.append(hist)
             ret.append(histos)
             
+            hrhoname = pfx+"rho"
             if len(rhobins.shape) == 1:
-                hrhoname = pfx+"rho"
                 rhoProfile = RT.TProfile(hrhoname,hrhoname,rhobins.size-1,rhobins)
                 tree.Draw("rho:rho>>+%s" % hrhoname, weight, "goff")
-                rhoProfile.SetDirectory(0)
-                rhoprofs.append(rhoProfile)
+            else:
+                rhoProfile = RT.TH1D(hrhoname,hrhoname,rhobins.shape[0],np.linspace(0,rhobins.shape[0]+1,rhobins.shape[0]))
+                ibin = 0
+                for rhomin,rhomax in rhopairs:
+                    ibin += 1
+                    tmp = RT.TH1D("tmp", "tmp", 100, np.linspace(0,100,101))
+                    nentries = tree.Draw("rho>>+tmp", "(%s)*(rho > %f && rho <= %f)" % (weight, rhomin, rhomax), "goff")
+                    tmp.SetDirectory(0)
+                    rhoProfile.SetBinContent(ibin,tmp.GetMean())
+                    rhoProfile.SetBinError(ibin,tmp.GetRMS())
+            rhoProfile.SetDirectory(0)
+            rhoprofs.append(rhoProfile)
+            
 
         self.histData = ret[0]
         self.histMC   = ret[1]
 
         self.rhobins = rhobins
-        if len(rhobins.shape) == 1:
-            self.rhoData = rhoprofs[0]
-            self.rhoMC   = rhoprofs[1]
+        ## if len(rhobins.shape) == 1:
+        self.rhoData = rhoprofs[0]
+        self.rhoMC   = rhoprofs[1]
             
         return ret
 
@@ -319,9 +330,10 @@ def runEtaBin(treeData,treeMC,rhobins,isobins,etaLabel,etaCut,sameMult=False,mul
     ## print(histos)
 
     sqrtn = int(math.ceil(math.sqrt(len(histos[0]))))
-    canvSize = min(2,sqrtn)
+    ## canvSize = min(2,sqrtn)*100
+    canvSize = min(2,sqrtn)*200
     if drawTH1s:
-        canv = RT.TCanvas("c","c",canvSize*700,canvSize*500)
+        canv = RT.TCanvas("c","c",canvSize*7,canvSize*5)
         canv.Divide(sqrtn,sqrtn)
         for ih,hists in enumerate(zip(histos[0],histos[1])):
             data,mc = hists
@@ -344,15 +356,15 @@ def runEtaBin(treeData,treeMC,rhobins,isobins,etaLabel,etaCut,sameMult=False,mul
         canv.Draw()
 
     if not sameMult:
-        grid = np.linspace(0.5,8,16)
+        grid = np.linspace(0.5,10,20)
     else:
         grid = np.linspace(0.5,4,8)
         
     # frame = self.getXvar().frame()
     allframes = []
-    canvData=RT.TCanvas("cd","cd",canvSize*700,canvSize*500)
+    canvData=RT.TCanvas("cd","cd",canvSize*7,canvSize*5)
     canvData.Divide(sqrtn,sqrtn)
-    canvMC=RT.TCanvas("ce","ce",canvSize*700,canvSize*500)
+    canvMC=RT.TCanvas("ce","ce",canvSize*7,canvSize*5)
     canvMC.Divide(sqrtn,sqrtn)
     def fit(imult):
         frames, mults = correct.fitMultiplicity(imult,sameMult=sameMult,
@@ -377,10 +389,10 @@ def runEtaBin(treeData,treeMC,rhobins,isobins,etaLabel,etaCut,sameMult=False,mul
         return mults
 
     
-    mults = map( fit,  xrange(rhobins.size-1) )
+    mults = map( fit,  xrange(rhobins.shape[0]) )
     canvData.Draw()
     # canvMC.Draw()
-    for ih in xrange(rhobins.size-1):
+    for ih in xrange(rhobins.shape[0]):
         canvData.cd(ih+1)
         RT.gPad.SetLogy()
         canvMC.cd(ih+1)
@@ -389,7 +401,7 @@ def runEtaBin(treeData,treeMC,rhobins,isobins,etaLabel,etaCut,sameMult=False,mul
     canvMC.Draw()
     
     npmults = np.array(map(lambda x: (x[1], x[2], x[3][0], x[4][0], (x[1]*x[4][0])/(x[2]*x[3][0])), mults))
-    
+    # print(npmults)
     mdata,qdata = np.polyfit(npmults[:,0],npmults[:,2],1)
     mmc, qmc = np.polyfit(npmults[:,1],npmults[:,3],1)
     
@@ -413,6 +425,6 @@ def runEtaBin(treeData,treeMC,rhobins,isobins,etaLabel,etaCut,sameMult=False,mul
     plt.ylabel("Data / MC")
     plt.legend(loc='best')
     plt.show()
-    
-    return etaLabel,rhobins.size,isobins[0],isobins[-1],sameMult,multOffset,npmults[:,2]/npmults[:,3]
+
+    return etaLabel,rhobins.size,isobins[0],isobins[-1],sameMult,multOffset,npmults[:,2]/npmults[:,3],npmults[:,3],npmults[:,0],npmults[:,1],mdata,qdata,mmc,qmc,histos
     
