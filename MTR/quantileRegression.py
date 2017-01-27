@@ -11,6 +11,12 @@ from   root_pandas import read_root
 import time
 import pickle
 import gzip
+import bisect
+# from joblib import Parallel, delayed
+from sklearn.externals.joblib import Parallel, parallel_backend, register_parallel_backend
+from joblib import delayed
+import os
+import ROOT as rt
 
 class mycolors:
    red = '\033[91m'
@@ -27,12 +33,158 @@ class mycolors:
 
 
 
+# -------------------------------------------------------------------------------------
+def setupJoblib(ipp_profile='default'):
+    
+    import ipyparallel as ipp
+    from ipyparallel.joblib import IPythonParallelBackend
+    global joblib_rc,joblib_view,joblib_be
+    joblib_rc = ipp.Client(profile=ipp_profile)
+    joblib_view = joblib_rc.load_balanced_view()
+    joblib_be = IPythonParallelBackend(view=joblib_view)
+    
+    register_parallel_backend('ipyparallel',lambda : joblib_be,make_default=True)
 
 
-
-
-
+#
+# helper class to peform quantile-based corrections
+#
+# --------------------------------------------------------------------------------
+class Corrector:
    
+   # store regressors
+   def __init__(self,mcclf,dataclf,X,Y):
+      self.mcqtls   = np.array([clf.predict(X) for clf in mcclf])
+      self.dataqtls = np.array([clf.predict(X) for clf in dataclf])
+
+      self.Y = Y
+      
+   # correction is actually done here
+   def correctEvent(self,iev):
+
+      mcqtls = self.mcqtls[:,iev]
+      dataqtls = self.dataqtls[:,iev]
+      Y = self.Y[iev]
+      
+      qmc   = bisect.bisect_right(mcqtls,Y)
+      if qmc == 0:
+         qmc_low,qdata_low   = 0,0                              # all shower shapes have a lower bound at 0
+         qmc_high,qdata_high = mcqtls[qmc],dataqtls[qmc]
+      elif qmc < len(mcqtls):
+         qmc_low,qdata_low   = mcqtls[qmc-1],dataqtls[qmc-1]
+         qmc_high,qdata_high = mcqtls[qmc],dataqtls[qmc]
+      else:
+         qmc_low,qdata_low   = mcqtls[qmc-1],mcqtls[qmc-1]
+         qmc_high,qdata_high = mcqtls[-1]*1.2,dataqtls[-1]*1.2   # some variables (e.g. sigmaRR) have values above 1
+         # to set the value for the highest quantile 20% higher
+                                                                       
+      return (qdata_high-qdata_low)/(qmc_high-qmc_low) * (Y - qmc_low) + qdata_low
+
+   def __call__(self):
+      return np.array([ self.correctEvent(iev) for iev in xrange(self.Y.size) ]).ravel()
+
+def applyCorrection(mcclf,dataclf,X,Y):
+   return Corrector(mcclf,dataclf,X,Y)()
+
+
+#
+# helper class to evaluate ID MVA
+# 
+# --------------------------------------------------------------------------------
+#
+class IdMvaComputer:
+
+   def __init__(self,wd,weightsEB,weightsEE,correct=[]):
+      rt.gROOT.LoadMacro(os.path.join(wd,"phoIDMVAonthefly.C"))
+      
+      self.X = rt.phoIDInput()
+      self.readerEB = rt.bookReadersEB(weightsEB, self.X)
+      self.readerEE = rt.bookReadersEE(weightsEE, self.X)
+
+      columns = ["ScEnergy","ScEta","rho","R9","SigmaIeIe","PhiWidth","EtaWidth","CovarianceIetaIphi","S4","PhoIso03","ChIso03","ChIso03worst","SigmaRR","ScPreshowerEnergy"]
+
+      # make list of input columns
+      self.columns = map(lambda x: x+"_corr" if x in correct else x, columns)
+      
+   def __call__(self,X):
+
+      # make sure of order of the input columns and convert to a numpy array
+      Xvals = X[ self.columns ].values
+
+      return np.apply_along_axis( self.predict, 1, Xvals ).ravel()
+      
+   def predict(self,row):
+      return self.predictEB(row) if np.abs(row[1]) < 1.5 else self.predictEE(row)
+
+   def predictEB(self,row):
+      # use numeric indexes to speed up
+      self.X.phoIdMva_SCRawE_          = row[0]
+      self.X.phoIdMva_ScEta_           = row[1]
+      self.X.phoIdMva_rho_             = row[2]
+      self.X.phoIdMva_R9_              = row[3]
+      self.X.phoIdMva_covIEtaIEta_     = row[4] # this is really sieie
+      self.X.phoIdMva_PhiWidth_        = row[5]
+      self.X.phoIdMva_EtaWidth_        = row[6]
+      self.X.phoIdMva_covIEtaIPhi_     = row[7]
+      self.X.phoIdMva_S4_              = row[8]
+      self.X.phoIdMva_pfPhoIso03_      = row[9]
+      self.X.phoIdMva_pfChgIso03_      = row[10]
+      self.X.phoIdMva_pfChgIso03worst_ = row[11]
+      return self.readerEB.EvaluateMVA("BDT")
+
+
+   def predictEE(self,row):
+      self.X.phoIdMva_SCRawE_          = row[0]
+      self.X.phoIdMva_ScEta_           = row[1]
+      self.X.phoIdMva_rho_             = row[2]
+      self.X.phoIdMva_R9_              = row[3]
+      self.X.phoIdMva_covIEtaIEta_     = row[4] # this is really sieie
+      self.X.phoIdMva_PhiWidth_        = row[5]
+      self.X.phoIdMva_EtaWidth_        = row[6]
+      self.X.phoIdMva_covIEtaIPhi_     = row[7]
+      self.X.phoIdMva_S4_              = row[8]
+      self.X.phoIdMva_pfPhoIso03_      = row[9]
+      self.X.phoIdMva_pfChgIso03_      = row[10]
+      self.X.phoIdMva_pfChgIso03worst_ = row[11]
+      self.X.phoIdMva_ESEffSigmaRR_    = row[12]
+      esEn                             = row[13]
+      ScEn                             = row[0]
+      self.X.phoIdMva_esEnovSCRawEn_ = esEn/ScEn
+      return self.readerEE.EvaluateMVA("BDT")
+
+
+def computeIdMva(wd,weightsEB,weightsEE,correct,X):
+   return IdMvaComputer(wd,weightsEB,weightsEE,correct)(X)
+
+
+#
+# helper class to peform stochastic isolation corrections
+# 
+# --------------------------------------------------------------------------------
+class IsolationCorrector:
+
+   def __init__(self,wd,corr_file):
+
+      if os.path.exists(os.path.join(wd,"../phoIsoStoch/IsolationCorrection_C.so")):
+         rt.gSystem.Load(os.path.join(wd,"../phoIsoStoch/IsolationCorrection_C.so"))
+      else:
+         rt.gROOT.LoadMacro(os.path.join(wd,"../phoIsoStoch/IsolationCorrection.C"))
+      self.isoCorr = rt.IsolationCorrection(corr_file)
+
+   def __call__(self,X):
+      
+      Xvals = X[ ['rho','ScEta','PhoIso03'] ].values
+
+      return np.apply_along_axis( self.predict, 1, Xvals ).ravel()
+   
+   def predict(self,row):
+      rho,eta,iso = row[0],np.abs(row[1]),row[2]
+      return iso+self.isoCorr.getExtra(eta,rho)
+
+def applyIsoCorrection(wd,corr_file,X):
+   return IsolationCorrector(wd,corr_file)(X)
+
+
 #
 # 
 # --------------------------------------------------------------------------------
@@ -50,7 +202,7 @@ class quantileRegression:
 
    fname               = "output.root"
 
-   evtBranches         = ["rho", "nvtx"]
+   evtBranches         = ["rho", "nvtx", "mass"]
 
    trgBranches         = [ "leadHLT_Ele27_WPTight_Gsf_vMatch", "subleadHLT_Ele27_WPTight_Gsf_vMatch" ]
 
@@ -113,7 +265,7 @@ class quantileRegression:
             
       # use common names for the traning dataset
       #
-      uniformColumnsNames = ["rho", "nvtx" ,                       
+      uniformColumnsNames = ["rho", "nvtx" ,"mass",                       
                              "Pt", "ScEta", "Phi",
                              "R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR" ,
                              'ScEnergy', 'CovarianceIetaIphi', 'PhoIso03', 'ChIso03', 'ChIso03worst' ,'ScPreshowerEnergy',
@@ -272,8 +424,8 @@ class quantileRegression:
       if   start == -1 :
          print "Invalid start-evt = -1 "
          return
-      if stop  == -1 :
-         stop = len(df.index)
+      ## if stop  == -1 :
+      ##    stop = len(df.index)
 
       print mycolors.green+"Selecting events",mycolors.default, " [", start, ", ", stop, "]  out of ", len(df.index)
       index = index[start:stop]
@@ -559,18 +711,6 @@ class quantileRegression:
 
       return predclf.predict(X)
       
-
-      
-
-
-      
-
-
-
-
-
-
-
    # get the data regression weights
    # e.g filename = "./weights/data_weights" the quantile and .pkl are added here
    #
@@ -587,16 +727,6 @@ class quantileRegression:
          dataWeights   = filename + "_" + var + '_' + str(q) + ".pkl"
          self.dataclf  .append(pickle.load(gzip.open(dataWeights)))
       if dbg : print "DATA weights : ", self.dataclf
-
-
-
-
-
-
-
-
-
-
       
    # get the MC regression weights
    # e.g filename = "./weights/mc_weights" the quanitle and .pkl are added here
@@ -615,16 +745,6 @@ class quantileRegression:
          self.mcclf    .append(pickle.load(gzip.open(mcWeights)))
       if dbg : print "MC   weights : ", mcclf
 
-   
-
-
-
-
-
-
-
-
-   
    # get the names to be used for X and y and fill the corrected vector
    # 
    # --------------------------------------------------------------------------------
@@ -728,13 +848,74 @@ class quantileRegression:
       self.df[ycorr] = y_tmp
       # print self.df[ycorr]
 
+   # compute ID mvas with different sets of corrected variables
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   def computeIdMvas(self,mvas,weights,n_jobs=1):
+      wd = os.getcwd()
 
+      weightsEB,weightsEE = map(lambda x: os.path.join(wd,x), weights )
+      for name,correctedVariables in mvas:
+         self.computeIdMva(name,wd,weightsEB,weightsEE,correctedVariables,n_jobs)
 
+   def computeIdMva(self,name,wd,weightsEB,weightsEE,correctedVariables,n_jobs):
+      stride = self.df.index.size / n_jobs
+      print("Computing %s, correcting %s" % (name,correctedVariables) )
+      Y = np.concatenate(Parallel(n_jobs=n_jobs,verbose=20)(
+         delayed(computeIdMva)(wd,weightsEB,weightsEE,correctedVariables,self.df.loc[ch:ch+stride-1])
+         for ch in xrange(0,self.df.index.size,stride) )
+      )      
+      
+      self.df[name] = Y
+      
+   # correct photon isolation
+   # 
+   # --------------------------------------------------------------------------------
+   def correctPhoIso(self,corr_file,n_jobs=1):
+      wd = os.getcwd()
+      stride = self.df.index.size / n_jobs
+      corr_file = os.path.join(wd,corr_file)
+      print("Computing corrected photon isolation using %s" % corr_file )
+      rt.gROOT.LoadMacro(os.path.join(wd,"../phoIsoStoch/IsolationCorrection.C+"))
+      Y = np.concatenate(Parallel(n_jobs=n_jobs,verbose=20)(
+         delayed(applyIsoCorrection)(wd,corr_file,self.df.loc[ch:ch+stride-1])
+         for ch in xrange(0,self.df.index.size,stride) )
+      )      
+      
+      self.df["PhoIso03_corr"] = Y
 
+   # get the names to be used for X and y and fill the corrected vector
+   # 
+   # --------------------------------------------------------------------------------
+   #
+   def correctYfast(self, x, y, quantiles, n_jobs=1, store=True ):
+      
+      dbg = False
+      
+      print "Get corrections for ", y, " with quantiles ", quantiles
 
-
-
-
+      y_tmp = []
+      
+      # quantile regressions features
+      X    = self.df.loc[:,x].values
+      # target e.g. y = "R9"
+      Y    = self.df[y]
+      print "Features: X = ", x, " target y = ", y
+      # print X, Y
+      
+      if y == 'PhoIso03' or y == 'ChIso03' or y == 'ChIso03worst':
+         Y = Y - 0.1*self.df['rho']
+      Y = Y.values.reshape(-1,1)
+      Z = np.hstack([X,Y])
+               
+      Ycorr = np.concatenate(Parallel(n_jobs=n_jobs,verbose=20)(delayed(applyCorrection)(self.mcclf,self.dataclf,ch[:,:-1],ch[:,-1])
+                                      for ch in np.array_split(Z,n_jobs) ) )
+      
+      if store:
+         self.df[y+"_corr"] = Ycorr
+         
+      return Ycorr
 
      
    # get the corrected array of y
@@ -748,21 +929,11 @@ class quantileRegression:
       # return self.y_corr
 
 
-
-
-
-
-
-
-
-
-
-
    # produce a dataset with [X, all-Ycorr]
    # 
    # --------------------------------------------------------------------------------
    #
-   def correctAllY(self, x, ylist, quantiles, forceComputeCorrections = False, EBEE=""):
+   def correctAllY(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE=""):
 
       import os.path      
       corrTargetsName = 'correctedTargets'
@@ -814,7 +985,7 @@ class quantileRegression:
             self.loadDataWeights(datafilename, Y, quantiles)      
 
             # print self.df
-            self.correctY(x, Yvar, quantiles )
+            self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )
 
          hdf = pd.HDFStore('correctedTargets.h5')
          if EBEE != '':
@@ -824,14 +995,6 @@ class quantileRegression:
          
       #print 'Final datafame:', self.df
 
-
-
-
-
-
-
-
-      
    # Scatter plots to check the quantiles
    # 
    # --------------------------------------------------------------------------------
@@ -910,14 +1073,6 @@ class quantileRegression:
       return plot
 
 
-
-
-
-
-
-
-
-
    # brute force access to X,Y, y_mc, y_data for debugging in notebooks
    #
    # --------------------------------------------------------------------------------
@@ -946,3 +1101,5 @@ class quantileRegression:
 
    def getCLF(self):#, X, Y, y_mc, y_data ):
       return self.mcclf
+
+
