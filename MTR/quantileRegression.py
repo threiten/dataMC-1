@@ -97,12 +97,30 @@ class IdMvaComputer:
    def __init__(self,wd,weightsEB,weightsEE,correct=[]):
       rt.gROOT.LoadMacro(os.path.join(wd,"phoIDMVAonthefly.C"))
       
+      self.rhoSubtraction = False
+      if type(correct) == dict:
+         self.rhoSubtraction = correct["rhoSubtraction"]
+         correct = correct["correct"]
+
       self.X = rt.phoIDInput()
       self.readerEB = rt.bookReadersEB(weightsEB, self.X)
-      self.readerEE = rt.bookReadersEE(weightsEE, self.X)
+      self.readerEE = rt.bookReadersEE(weightsEE, self.X, self.rhoSubtraction)
 
-      columns = ["ScEnergy","ScEta","rho","R9","SigmaIeIe","PhiWidth","EtaWidth","CovarianceIetaIphi","S4","PhoIso03","ChIso03","ChIso03worst","SigmaRR","ScPreshowerEnergy"]
+      # print ("IdMvaComputer.__init__")
+      
+      columns = ["ScEnergy","ScEta","rho","R9","SigmaIeIe","PhiWidth","EtaWidth","CovarianceIetaIphi","S4","PhoIso03","ChIso03","ChIso03worst","SigmaRR","ScPreshowerEnergy","Pt"]
 
+
+      if self.rhoSubtraction:
+         self.effareas = np.array([[0.0000, 0.1210],   
+                                   [1.0000, 0.1107],
+                                   [1.4790, 0.0699],
+                                   [2.0000, 0.1056],
+                                   [2.2000, 0.1457],
+                                   [2.3000, 0.1719],
+                                   [2.4000, 0.1998],
+         ])
+         
       # make list of input columns
       self.columns = map(lambda x: x+"_corr" if x in correct else x, columns)
       
@@ -115,9 +133,11 @@ class IdMvaComputer:
       
    def predict(self,row):
       return self.predictEB(row) if np.abs(row[1]) < 1.5 else self.predictEE(row)
-
+      # return self.predictEB(row)
+      
    def predictEB(self,row):
       # use numeric indexes to speed up
+      # print ("IdMvaComputer.predictEB")
       self.X.phoIdMva_SCRawE_          = row[0]
       self.X.phoIdMva_ScEta_           = row[1]
       self.X.phoIdMva_rho_             = row[2]
@@ -132,8 +152,12 @@ class IdMvaComputer:
       self.X.phoIdMva_pfChgIso03worst_ = row[11]
       return self.readerEB.EvaluateMVA("BDT")
 
-
+   def effArea(self,eta):
+      ibin = min(self.effareas.shape[0]-1,bisect.bisect_left(self.effareas[:,0],eta))
+      return self.effareas[ibin,1]
+   
    def predictEE(self,row):
+      # print ("IdMvaComputer.predictEB")
       self.X.phoIdMva_SCRawE_          = row[0]
       self.X.phoIdMva_ScEta_           = row[1]
       self.X.phoIdMva_rho_             = row[2]
@@ -144,6 +168,7 @@ class IdMvaComputer:
       self.X.phoIdMva_covIEtaIPhi_     = row[7]
       self.X.phoIdMva_S4_              = row[8]
       self.X.phoIdMva_pfPhoIso03_      = row[9]
+      if self.rhoSubtraction: self.X.phoIdMva_pfPhoIso03_ = max(2.5, self.X.phoIdMva_pfPhoIso03_ - self.effArea( np.abs(self.X.phoIdMva_ScEta_))*self.X.phoIdMva_rho_ - 0.0034*row[14] )
       self.X.phoIdMva_pfChgIso03_      = row[10]
       self.X.phoIdMva_pfChgIso03worst_ = row[11]
       self.X.phoIdMva_ESEffSigmaRR_    = row[12]
@@ -155,7 +180,6 @@ class IdMvaComputer:
 
 def computeIdMva(wd,weightsEB,weightsEE,correct,X):
    return IdMvaComputer(wd,weightsEB,weightsEE,correct)(X)
-
 
 #
 # helper class to peform stochastic isolation corrections
@@ -191,8 +215,9 @@ def applyIsoCorrection(wd,corr_file,X):
 #
 class quantileRegression:
 
-   def __init__(self, dmc):
-      self.dataMC   = dmc
+   def __init__(self, label):
+      self.label   = label
+      self.dataMC  = label.split("_",1)[0]
 
    inputDir = ""
 
@@ -202,7 +227,7 @@ class quantileRegression:
 
    fname               = "output.root"
 
-   evtBranches         = ["rho", "nvtx", "mass"]
+   evtBranches         = ["rho", "nvtx", "mass", "weight"]
 
    trgBranches         = [ "leadHLT_Ele27_WPTight_Gsf_vMatch", "subleadHLT_Ele27_WPTight_Gsf_vMatch" ]
 
@@ -211,12 +236,12 @@ class quantileRegression:
    recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
                           "leadR9", "leadS4", "leadSigmaIeIe", "leadEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
                           'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', 'leadScPreshowerEnergy',
-                          'leadPhoIDMVA']
+                          'leadPhoIDMVA', 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
 
    recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
                           "subleadR9", "subleadS4", "subleadSigmaIeIe", "subleadEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",
                           'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', 'subleadChIso03', 'subleadChIso03worst', 'leadScPreshowerEnergy',
-                          'subLeadPhoIDMVA']
+                          'subLeadPhoIDMVA', 'subleadSigEOverE','subleadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
 
    data_recoBranches   = evtBranches  + trgBranches + eleMatchBranches + recoLeadBranches + recoSubleadBranches
    mc_recoBranches     = evtBranches  +               eleMatchBranches + recoLeadBranches + recoSubleadBranches
@@ -265,11 +290,11 @@ class quantileRegression:
             
       # use common names for the traning dataset
       #
-      uniformColumnsNames = ["rho", "nvtx" ,"mass",                       
+      uniformColumnsNames = ["rho", "nvtx" ,"mass","weight",
                              "Pt", "ScEta", "Phi",
                              "R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR" ,
                              'ScEnergy', 'CovarianceIetaIphi', 'PhoIso03', 'ChIso03', 'ChIso03worst' ,'ScPreshowerEnergy',
-                             'PhoIDMVA']
+                             'PhoIDMVA','SigEOverE','RecoSigEOverE','UnsmearedSigEOverE','AfterSSTrSigEOverE']
                                                                                 
       # attach the tree structure to the tree names
       #
@@ -397,7 +422,8 @@ class quantileRegression:
 
       print "Count final dataset"
       print df.count()
-         
+      print df.columns
+            
       # apply basic selection
       #
       df = df.query('@self.ptmin < Pt and Pt < @self.ptmax and @self.etamin < ScEta and ScEta < @self.etamax and @self.phimin < Phi and Phi < @self.phimax')
@@ -440,7 +466,7 @@ class quantileRegression:
       print "DataFrame size = ", len(self.df.index)
 
       # save the DF locally for future use
-      dfname =  'df_' + self.dataMC + '_' + str(start) + '-' + str(stop) + '.h5'
+      dfname =  'df_' + self.label + '_' + str(start) + '-' + str(stop) + '.h5'
       hdf = pd.HDFStore(dfname)
       hdf.put('df', self.df)
       hdf.close()
@@ -866,9 +892,13 @@ class quantileRegression:
          delayed(computeIdMva)(wd,weightsEB,weightsEE,correctedVariables,self.df.loc[ch:ch+stride-1])
          for ch in xrange(0,self.df.index.size,stride) )
       )      
-      
+
+      ## Y = computeIdMva(wd,weightsEB,weightsEE,correctedVariables,self.df)
+
       self.df[name] = Y
-      
+
+      # compute ID mvas with different sets of corrected variables
+
    # correct photon isolation
    # 
    # --------------------------------------------------------------------------------
