@@ -55,8 +55,8 @@ public:
 			for(size_t irho=0; irho<rho_centers.size(); ++irho) {
 				auto ibin = index(ieta,irho);
 				auto & rho = rho_centers[irho];
-
-				/// std::cerr << rho << std::endl;
+				
+				// std::cerr << rho << std::endl;
 				TString name = TString::Format("hist_%1.3f_%1.2f",eta,rho);
 				name.ReplaceAll(".","p");
 				// std::cerr << name << std::endl;
@@ -72,7 +72,7 @@ public:
 	}
 
 	
-	float getExtra(float eta, float rho, float extraMult=0) {
+	float getExtra(float eta, float rho, float extraMult=0, bool ignoreOffset=false) {
         
 		int ieta = findIndex(eta,eta_centers_);
         
@@ -91,7 +91,7 @@ public:
 
 		auto & rho_centers = eta_centers_[ieta] < 1.5 ? rho_centers_eb_ : rho_centers_ee_;
 		int irho = findIndex(rho, rho_centers);
-		if ( ! multiplicity_offset_.empty() ) {
+		if ( ! multiplicity_offset_.empty() && ! ignoreOffset ) {
 			irho = std::max(0,( multiplicity_offset_[ieta] < 10 ? irho - multiplicity_offset_[ieta] : 0 ));
 		}
 		

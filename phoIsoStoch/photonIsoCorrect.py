@@ -10,7 +10,8 @@ import sys
 # ------------------------------------------------------------------------------------------------------
 class IO:
     
-    dataSrc = "root://t3dcachedb03.psi.ch//pnfs/psi.ch/cms/trivcat/store/user/musella/"
+    # dataSrc = "root://t3dcachedb03.psi.ch//pnfs/psi.ch/cms/trivcat/store/user/musella/"
+    dataSrc = "/mnt/t3nfs01/data01/shome/musella/Analysis/jupyter/dataMC/"
     objs = []
     
     # ------------------------------------------------------------------------------------------------------
@@ -71,23 +72,22 @@ class Corrector:
         rhoprofs = []
         for tree,pfx in (self.treeData,"hdata_"),(self.treeMC,"hmc_"):
             histos = []
-            print(tree,pfx)
+            print(tree,pfx,file=sys.stderr)
             if tree == None:
                 print("Tree %s is None" % pfx[1:].replace("_",""), file=sys.stderr)
                 ret.append(histos)
-                continue
             if len(rhobins.shape) > 1:
                 rhopairs = rhobins
             else:
                 rhopairs = zip(rhobins,rhobins[1:])
             for rhomin,rhomax in rhopairs:
                 hname = pfx + (name % (rhomin, rhomax)).replace(".","p")
-                print(hname)
+                print(hname,file=sys.stderr)
                 hist = RT.TH1D(hname, hname, binning.size-1, binning)
                 
                 tree.Draw("%s>>+%s" % (var,hname), "(%s)*(rho > %f && rho <= %f)" % (weight, rhomin, rhomax), "goff")
                 hist.SetDirectory(0)
-            
+                
                 histos.append(hist)
             ret.append(histos)
             
@@ -308,18 +308,25 @@ class Corrector:
 # ------------------------------------------------------------------------------------------------------
 def runEtaBin(treeData,treeMC,rhobins,isobins,etaLabel,etaCut,sameMult=False,multOffset=0,drawTH1s=False,histosOnly=False):
 
-    # print(treeData,treeMC,rhobins,isobins,etaLabel,etaCut,sameMult,multOffset)
+    # print(treeData,treeMC,rhobins,isobins,etaLabel,etaCut,sameMult,multOffset,file=sys.stderr)
     if treeData:
         treeData = IO.getTree(*treeData)
     else:
         print("No tree for data. Will just make MC histograms.", file=sys.stderr)
         histosOnly = True
     treeMC = IO.getTree(*treeMC)
+    ## print (treeData, file=sys.stderr)
+    ## print (treeMC,file=sys.stderr)
     
+    ## print("making corrector",file=sys.stderr)
     correct = Corrector(treeData,treeMC)
 
-    histos = correct.mkIsoHistos(rhobins,"probe_phoiso",etaLabel+"_%1.2f_%1.2f",isobins,"weight*(%s)" % etaCut)
+    ## histos = correct.mkIsoHistos(rhobins,"probe_phoiso",etaLabel+"_%1.2f_%1.2f",isobins,"weight*(%s)" % etaCut)
+    ## print("making histos",file=sys.stderr)
+    histos = correct.mkIsoHistos(rhobins,"PhoIso03",etaLabel+"_%1.2f_%1.2f",isobins,"1.*(%s)" % etaCut)
+    ## print("done",file=sys.stderr)
 
+    
     if histosOnly:
         return etaLabel,histos
     

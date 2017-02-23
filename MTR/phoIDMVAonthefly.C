@@ -46,7 +46,7 @@ TMVA::Reader* bookReadersEB(const string &xmlfilenameEB, phoIDInput &inp){
 
 
 
-TMVA::Reader* bookReadersEE(const string &xmlfilenameEE, phoIDInput &inp){
+TMVA::Reader* bookReadersEE(const string &xmlfilenameEE, phoIDInput &inp, bool rhoCorr=false){
 
   // **** bdt 2015 EE ****
 
@@ -61,13 +61,18 @@ TMVA::Reader* bookReadersEE(const string &xmlfilenameEE, phoIDInput &inp){
   phoIdMva_EE_->AddVariable( "phiWidth",        &inp.phoIdMva_PhiWidth_ );
   phoIdMva_EE_->AddVariable( "covIEtaIPhi", &inp.phoIdMva_covIEtaIPhi_ );
   phoIdMva_EE_->AddVariable( "s4",     &inp.phoIdMva_S4_ );
-  phoIdMva_EE_->AddVariable( "phoIso03",    &inp.phoIdMva_pfPhoIso03_ );
+  if( rhoCorr ) { 
+	  phoIdMva_EE_->AddVariable( "isoPhoCorrMax2p5",    &inp.phoIdMva_pfPhoIso03_ );
+  } else {
+	  phoIdMva_EE_->AddVariable( "phoIso03",    &inp.phoIdMva_pfPhoIso03_ );
+  }
   phoIdMva_EE_->AddVariable( "chgIsoWrtChosenVtx",   &inp.phoIdMva_pfChgIso03_ );
   phoIdMva_EE_->AddVariable( "chgIsoWrtWorstVtx", &inp.phoIdMva_pfChgIso03worst_ );
   phoIdMva_EE_->AddVariable( "scEta",             &inp.phoIdMva_ScEta_ );
   phoIdMva_EE_->AddVariable( "rho",                  &inp.phoIdMva_rho_ );
   phoIdMva_EE_->AddVariable( "esEffSigmaRR",   &inp.phoIdMva_ESEffSigmaRR_ );
-  // if(useNewPhoId) phoIdMva_EE_->AddVariable( "esEnovSCRawEn",   &inp.phoIdMva_esEnovSCRawEn_ );
+  // if(rhoCorr) phoIdMva_EE_->AddVariable( "esEnovSCRawEn",   &inp.phoIdMva_esEnovSCRawEn_ );
+  if(rhoCorr) phoIdMva_EE_->AddVariable( "esEnergy/SCRawE",   &inp.phoIdMva_esEnovSCRawEn_ );
   phoIdMva_EE_->BookMVA( mvamethod.c_str(), xmlfilenameEE );
 
   return phoIdMva_EE_;
