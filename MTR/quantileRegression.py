@@ -219,47 +219,47 @@ class quantileRegression:
       self.label   = label
       self.dataMC  = label.split("_",1)[0]
 
-   inputDir = ""
+      self.inputDir = ""
 
-   treeDir  = ""
+      self.treeDir  = ""
 
-   trees    = ""
+      self.trees    = ""
 
-   fname               = "output.root"
+      self.fname               = "output.root"
 
-   evtBranches         = ["rho", "nvtx", "mass", "weight"]
+      self.evtBranches         = ["run", "rho", "nvtx", "mass", "weight"]
+      
+      self.trgBranches         = [ "leadHLT_Ele27_WPTight_Gsf_vMatch", "subleadHLT_Ele27_WPTight_Gsf_vMatch" ]
+      
+      self.eleMatchBranches    = [ "leadEleMatch", "subleadEleMatch" ]
+      
+      self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
+                             "leadR9", "leadS4", "leadSigmaIeIe", "leadEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
+                             'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', 'leadScPreshowerEnergy',
+                             'leadPhoIDMVA', 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
+      
+      self.recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
+                             "subleadR9", "subleadS4", "subleadSigmaIeIe", "subleadEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",
+                             'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', 'subleadChIso03', 'subleadChIso03worst', 'subleadScPreshowerEnergy',
+                             'subLeadPhoIDMVA', 'subleadSigEOverE','subleadRecoSigEOverE','subleadUnsmearedSigmaEoE','subleadAfterSSTrSigEOverE']
+      
+      self.data_recoBranches   = self.evtBranches  + self.trgBranches + self.eleMatchBranches + self.recoLeadBranches + self.recoSubleadBranches
+      self.mc_recoBranches     = self.evtBranches  +               self.eleMatchBranches + self.recoLeadBranches + self.recoSubleadBranches
 
-   trgBranches         = [ "leadHLT_Ele27_WPTight_Gsf_vMatch", "subleadHLT_Ele27_WPTight_Gsf_vMatch" ]
-
-   eleMatchBranches    = [ "leadEleMatch", "subleadEleMatch" ]
-   
-   recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
-                          "leadR9", "leadS4", "leadSigmaIeIe", "leadEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
-                          'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', 'leadScPreshowerEnergy',
-                          'leadPhoIDMVA', 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
-
-   recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
-                          "subleadR9", "subleadS4", "subleadSigmaIeIe", "subleadEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",
-                          'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', 'subleadChIso03', 'subleadChIso03worst', 'leadScPreshowerEnergy',
-                          'subLeadPhoIDMVA', 'subleadSigEOverE','subleadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
-
-   data_recoBranches   = evtBranches  + trgBranches + eleMatchBranches + recoLeadBranches + recoSubleadBranches
-   mc_recoBranches     = evtBranches  +               eleMatchBranches + recoLeadBranches + recoSubleadBranches
-
-   df = 0
-
-   y_corr = 0
-
-   mcclf = []
-
-   dataclf = []
-
-   ptmin  =  25.
-   ptmax  =  150.
-   etamin = -2.5
-   etamax =  2.5
-   phimin = -3.14
-   phimax =  3.14
+      self.df = 0
+      
+      self.y_corr = 0
+      
+      self.mcclf = []
+      
+      self.dataclf = []
+      
+      self.ptmin  =  25.
+      self.ptmax  =  150.
+      self.etamin = -2.5
+      self.etamax =  2.5
+      self.phimin = -3.14
+      self.phimax =  3.14
 
 
 
@@ -290,7 +290,7 @@ class quantileRegression:
             
       # use common names for the traning dataset
       #
-      uniformColumnsNames = ["rho", "nvtx" ,"mass","weight",
+      uniformColumnsNames = ["run", "rho", "nvtx" ,"mass","weight", "SigMoM", "RecoSigMoM",
                              "Pt", "ScEta", "Phi",
                              "R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR" ,
                              'ScEnergy', 'CovarianceIetaIphi', 'PhoIso03', 'ChIso03', 'ChIso03worst' ,'ScPreshowerEnergy',
@@ -320,6 +320,13 @@ class quantileRegression:
       print df.count()
       df = df.reset_index() # otherwise it will keep the index of each of the added dataframe
       # print df 
+
+      # sigmaM/M
+      df["SigMoM"]          = 0.5*np.sqrt(np.power(df.leadSigEOverE,2) + np.power(df.subleadSigEOverE,2))
+      df["RecoSigMoM"] = 0.5*np.sqrt(np.power(df.leadRecoSigEOverE,2) + np.power(df.subleadRecoSigEOverE,2) + 
+                                          (np.power(df.leadSigEOverE,2) - np.power(df.leadUnsmearedSigmaEoE, 2)) +( np.power(df.subleadSigEOverE,2) - np.power(df.subleadUnsmearedSigmaEoE, 2)))      
+      
+      self.evtBranches += [ "SigMoM", "RecoSigMoM" ]
 
       if (self.dataMC == "data" ):
          # trigger matching logic :         
@@ -359,11 +366,14 @@ class quantileRegression:
          print "# lead trig and eleMatch    = ", len(idx_trgEleMatchLead)
          print "# sublead trig and eleMatch = ", len(idx_trgEleMatchSublead)
          
+         print "evtbranches", self.evtBranches
+         print  "unif", uniformColumnsNames
          # if the lead triggered use the sublead
          #
          print "Data Sublead"
          dataSublead = df[ self.evtBranches + self.recoSubleadBranches ]
          dataSublead = dataSublead.loc[idx_trgEleMatchLead]
+         print dataSublead.columns         
          dataSublead.columns = uniformColumnsNames
          print dataSublead.count()
          #
@@ -420,10 +430,18 @@ class quantileRegression:
          if dbg : print data.count()
 
 
+      # smear the Reco sigmaE/E
+      # 
+      df["RecoSigEOverEsmear"] = np.sqrt(np.power(df.RecoSigEOverE,2) + (np.power(df.SigEOverE,2) - np.power(df.UnsmearedSigEOverE, 2)))
+      
+
       print "Count final dataset"
       print df.count()
       print df.columns
             
+
+
+
       # apply basic selection
       #
       df = df.query('@self.ptmin < Pt and Pt < @self.ptmax and @self.etamin < ScEta and ScEta < @self.etamax and @self.phimin < Phi and Phi < @self.phimax')
@@ -964,43 +982,52 @@ class quantileRegression:
    # --------------------------------------------------------------------------------
    #
    def correctAllY(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE=""):
-
-      import os.path      
-      corrTargetsName = 'correctedTargets'
-      if   EBEE == 'EB':
-         corrTargetsName += '_EB'
-      if   EBEE == 'EE':
-         corrTargetsName += '_EE'
-      corrTargetsName += '.h5'
+    #new version with path to the weights 
+        import os.path      
+        corrTargetsName = 'correctedTargets'
+        if   EBEE == 'EB':
+                corrTargetsName += '_EB'
+          
+        if   EBEE == 'EE':
+                corrTargetsName += '_EE'
+        corrTargetsName += '.h5'
       
-      if ((os.path.exists(corrTargetsName)) and not( forceComputeCorrections )) :
-         print 'Loading corrected targets from : ', corrTargetsName         
-         self.df = pd.read_hdf(corrTargetsName, 'df')
-         return
-      
-      else:          
-         print 'Corrected variables file (e.g. ', corrTargetsName, ' ) does not exists. This will take a while...'
-
+        if ((os.path.exists(corrTargetsName)) and not( forceComputeCorrections )) :
+            print 'Loading corrected targets from : ', corrTargetsName         
+            self.df = pd.read_hdf(corrTargetsName, 'df')
+            return
+        else:          
+            print 'Corrected variables file (e.g. ', corrTargetsName, ' ) does not exists. This will take a while...'     
+   
          # Here you are cutting out part of the DF !
-         if   EBEE == 'EB':
+        if   EBEE == 'EB':
             print "Correct EB :"
             self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
-         elif EBEE == 'EE':
+        elif EBEE == 'EE':
             print "Correct EE :"
             self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
-         else:
+        else:
             print "Correct both EB and EE together"
-         
-         mcfilename   = "./weights/mc_weights"
-         datafilename = "./weights/data_weights"
-         if   EBEE == 'EB':
+            
+        mcfilename   = "./weights/mc_weights"
+        datafilename = "./weights/data_weights"
+        if   EBEE == 'EB':
             mcfilename   = "./weights/mc_weights_EB"
             datafilename = "./weights/data_weights_EB"
-         elif EBEE == 'EE':
+        elif EBEE == 'EE':
             mcfilename   = "./weights/mc_weights_EE"
-            datafilename = "./weights/data_weights_EE"
-
-         for Y in ylist:
+            datafilename = "./weights/data_weights_EE"    
+        
+        #mcfilename   = x+"/weights/mc_weights"
+        #datafilename = x+"/weights/data_weights"
+        #if   EBEE == 'EB':
+        #    mcfilename   = x+"/weights/mc_weights_EB"
+        #    datafilename = x+"/weights/data_weights_EB"
+        #elif EBEE == 'EE':
+        #    mcfilename   = x+"/weights/mc_weights_EE"
+        #    datafilename = x+"/weights/data_weights_EE"
+            
+        for Y in ylist:
 
             Yvar = Y
             if Y == 'PhoIso03' or Y == 'ChIso03' or Y == 'ChIso03worst':
@@ -1017,11 +1044,11 @@ class quantileRegression:
             # print self.df
             self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )
 
-         hdf = pd.HDFStore('correctedTargets.h5')
-         if EBEE != '':
+        hdf = pd.HDFStore('correctedTargets.h5')
+        if EBEE != '':
             hdf = pd.HDFStore('correctedTargets_'+EBEE+'.h5')
-         hdf.put('df', self.df)
-         hdf.close()
+        hdf.put('df', self.df)
+        hdf.close()
          
       #print 'Final datafame:', self.df
 
