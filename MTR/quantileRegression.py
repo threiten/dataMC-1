@@ -262,16 +262,40 @@ class quantileRegression:
       self.phimax =  3.14
 
 
+    #change to uncorreted variables for montecarlo
+    #-----------------------------------------------------------------------------------------
 
+   def changeUncorr(self):
+        self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
+                             "leadR9", "leadS4", "leadSigmaIeIe", "leadEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
+                             'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', 'leadScPreshowerEnergy',
+                             'leadPhoIDMVA', 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
+        self.recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
+                             "subleadUncorrR9", "subleadS4", "subleadSigmaIeIe", "subleadEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",
+                             'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', 'subleadChIso03', 'subleadChIso03worst', 'subleadScPreshowerEnergy',
+                             'subLeadPhoIDMVA', 'subleadSigEOverE','subleadRecoSigEOverE','subleadUnsmearedSigmaEoE','subleadAfterSSTrSigEOverE']
+      
 
-
-
-
+#        self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
+#                             "leadUncorrR9", "leadUncorrS4", "leadUncorr_non5x5_sigmaIetaIeta", "leadUncorrEtaWidth", #"leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
+#                             'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', #'leadScPreshowerEnergy',
+#                             'leadPhoIDMVA', 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
+#        self.recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
+#                             "subleadUncorrR9", "subleadUncorrS4", "subleadUncorr_non5x5_sigmaIetaIeta", "subleadUncorrEtaWidth", #"subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', #'subleadChIso03', 'subleadChIso03worst', 'subleadScPreshowerEnergy','subLeadPhoIDMVA', #'subleadSigEOverE','subleadRecoSigEOverE','subleadUnsmearedSigmaEoE','subleadAfterSSTrSigEOverE']
+        
+        
+        
+        
+#        self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
+#                             "leadUncorrR9", "leadUncorrEtaWidth", "leadUncorrS4", "leadUncorr_non5x5_r9", "leadUncorr_non5x5_sigmaIetaIeta", "leadUncorr_non5x5_sigmaIetaIphi", "leadUncorr_non5x5_sigmaIphiIphi"]
+#        self.recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
+#                             "subleadUncorrR9", "subleadUncorrEtaWidth", "subleadUncorrS4", "subleadUncorr_non5x5_r9", "subleadUncorr_non5x5_sigmaIetaIeta", "subleadUncorr_non5x5_sigmaIetaIphi", "subleadUncorr_non5x5_sigmaIphiIphi"]
 
    # load the dataframe from the input files
    # 
    # --------------------------------------------------------------------------------
    #
+   
    def loadDF(self, iDir, tDir, t, start, stop, rndm = 12345):
 
       dbg = False
