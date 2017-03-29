@@ -258,8 +258,8 @@ class quantileRegression:
       self.ptmax  =  150.
       self.etamin = -2.5
       self.etamax =  2.5
-      self.phimin = -3.14
-      self.phimax =  3.14
+      self.phimin = -3.1415926535897932
+      self.phimax =  3.1415926535897932
 
 
     #change to uncorreted variables for montecarlo
@@ -267,15 +267,17 @@ class quantileRegression:
 
    def changeUncorr(self):
         self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
-                             "leadR9", "leadS4", "leadSigmaIeIe", "leadEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
+                             "leadUncorrR9", "leadUncorrS4", "leadSigmaIeIe", "leadUncorrEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
                              'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', 'leadScPreshowerEnergy',
                              'leadPhoIDMVA', 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
         self.recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
-                             "subleadUncorrR9", "subleadS4", "subleadSigmaIeIe", "subleadEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",
+                             "subleadUncorrR9", "subleadUncorrS4", "subleadSigmaIeIe", "subleadUncorrEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",
                              'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', 'subleadChIso03', 'subleadChIso03worst', 'subleadScPreshowerEnergy',
                              'subLeadPhoIDMVA', 'subleadSigEOverE','subleadRecoSigEOverE','subleadUnsmearedSigmaEoE','subleadAfterSSTrSigEOverE']
-      
-
+        self.data_recoBranches   = self.evtBranches  + self.trgBranches + self.eleMatchBranches + self.recoLeadBranches + self.recoSubleadBranches
+        self.mc_recoBranches     = self.evtBranches  +               self.eleMatchBranches + self.recoLeadBranches + self.recoSubleadBranches
+        print self.recoSubleadBranches
+        
 #        self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
 #                             "leadUncorrR9", "leadUncorrS4", "leadUncorr_non5x5_sigmaIetaIeta", "leadUncorrEtaWidth", #"leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
 #                             'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', #'leadScPreshowerEnergy',
