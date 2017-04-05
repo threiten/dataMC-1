@@ -234,33 +234,17 @@ class quantileRegression:
       self.eleMatchBranches    = [ "leadEleMatch", "subleadEleMatch" ]
       
       self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
-                                  'leadScEnergy', 'leadScPreshowerEnergy', "leadSigmaRR" ,
-                                  'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', 
-                                  'leadPhoIDMVA' ] # , 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
+                             "leadR9", "leadS4", "leadSigmaIeIe", "leadEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
+                             'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', 'leadScPreshowerEnergy',
+                             'leadPhoIDMVA', 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
       
-      self.recoSubleadBranches    = ["subleadPt", "subleadScEta", "subleadPhi",
-                                  'subleadScEnergy', 'subleadScPreshowerEnergy', "subleadSigmaRR" ,
-                                  'subleadPhoIso03', 'subleadChIso03', 'subleadChIso03worst', 
-                                  'subLeadPhoIDMVA'] # , 'subleadSigEOverE','subleadRecoSigEOverE','subleadUnsmearedSigmaEoE','subleadAfterSSTrSigEOverE']
-
-      self.recoLeadSSBranches  = ["leadR9", "leadS4", "leadEtaWidth", "leadPhiWidth", 
-                                  "leadSigmaIeIe", 'leadCovarianceIetaIphi', "leadCovarianceIphiIphi" ]
-
-      self.recoSubleadSSBranches  = ["subleadR9", "subleadS4", "subleadEtaWidth", "subleadPhiWidth", 
-                                     "subleadSigmaIeIe", 'subleadCovarianceIetaIphi', "subleadCovarianceIphiIphi" ]
+      self.recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
+                             "subleadR9", "subleadS4", "subleadSigmaIeIe", "subleadEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",
+                             'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', 'subleadChIso03', 'subleadChIso03worst', 'subleadScPreshowerEnergy',
+                             'subLeadPhoIDMVA', 'subleadSigEOverE','subleadRecoSigEOverE','subleadUnsmearedSigmaEoE','subleadAfterSSTrSigEOverE']
       
-      # the uncorrected variables are used only if you switched on the corrections in flashgg
-      # NB: there is no PhiWIdth uncorrected !
-      #      self.recoLeadUncorrSSBranches  = ["leadUncorrR9", "leadUncorrS4", "leadUncorrEtaWidth", "leadPhiWidth",
-      #                                        "leadUncorr_non5x5_sigmaIetaIeta", "leadCovarianceIetaIphi", "leadCovarianceIphiIphi"]
-      #
-      #
-      # NB: there is no PhiWIdth uncorrected !
-      #      self.recoSubleadUncorrSSBranches  = ["subleadUncorrR9", "subleadUncorrS4", "subleadUncorrEtaWidth", "subleadPhiWidth", 
-      #                                        "subleadUncorr_non5x5_sigmaIetaIeta", "subleadCovarianceIetaIphi", "subleadCovarianceIphiIphi"]
-      
-      self.data_recoBranches   = self.evtBranches  + self.trgBranches + self.eleMatchBranches + self.recoLeadBranches + self.recoLeadSSBranches + self.recoSubleadBranches + self.recoSubleadSSBranches 
-      self.mc_recoBranches     = self.evtBranches  +                    self.eleMatchBranches + self.recoLeadBranches + self.recoLeadSSBranches + self.recoSubleadBranches + self.recoSubleadSSBranches 
+      self.data_recoBranches   = self.evtBranches  + self.trgBranches + self.eleMatchBranches + self.recoLeadBranches + self.recoSubleadBranches
+      self.mc_recoBranches     = self.evtBranches  +               self.eleMatchBranches + self.recoLeadBranches + self.recoSubleadBranches
 
       self.df = 0
       
@@ -274,21 +258,47 @@ class quantileRegression:
       self.ptmax  =  150.
       self.etamin = -2.5
       self.etamax =  2.5
-      self.phimin = -3.14
-      self.phimax =  3.14
+      self.phimin = -3.1415926535897932
+      self.phimax =  3.1415926535897932
 
 
+    #change to uncorreted variables for montecarlo
+    #-----------------------------------------------------------------------------------------
 
-
-
-
-
+   def changeUncorr(self):
+        self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
+                             "leadUncorrR9", "leadUncorrS4", "leadSigmaIeIe", "leadUncorrEtaWidth", "leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
+                             'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', 'leadScPreshowerEnergy',
+                             'leadPhoIDMVA', 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
+        self.recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
+                             "subleadUncorrR9", "subleadUncorrS4", "subleadSigmaIeIe", "subleadUncorrEtaWidth", "subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",
+                             'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', 'subleadChIso03', 'subleadChIso03worst', 'subleadScPreshowerEnergy',
+                             'subLeadPhoIDMVA', 'subleadSigEOverE','subleadRecoSigEOverE','subleadUnsmearedSigmaEoE','subleadAfterSSTrSigEOverE']
+        self.data_recoBranches   = self.evtBranches  + self.trgBranches + self.eleMatchBranches + self.recoLeadBranches + self.recoSubleadBranches
+        self.mc_recoBranches     = self.evtBranches  +               self.eleMatchBranches + self.recoLeadBranches + self.recoSubleadBranches
+        print self.recoSubleadBranches
+        
+#        self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
+#                             "leadUncorrR9", "leadUncorrS4", "leadUncorr_non5x5_sigmaIetaIeta", "leadUncorrEtaWidth", #"leadPhiWidth", "leadCovarianceIphiIphi", "leadSigmaRR" ,
+#                             'leadScEnergy', 'leadCovarianceIetaIphi', 'leadPhoIso03', 'leadChIso03', 'leadChIso03worst', #'leadScPreshowerEnergy',
+#                             'leadPhoIDMVA', 'leadSigEOverE','leadRecoSigEOverE','leadUnsmearedSigmaEoE','leadAfterSSTrSigEOverE']
+#        self.recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
+#                             "subleadUncorrR9", "subleadUncorrS4", "subleadUncorr_non5x5_sigmaIetaIeta", "subleadUncorrEtaWidth", #"subleadPhiWidth", "subleadCovarianceIphiIphi", "subleadSigmaRR",'subleadScEnergy', 'subleadCovarianceIetaIphi', 'subleadPhoIso03', #'subleadChIso03', 'subleadChIso03worst', 'subleadScPreshowerEnergy','subLeadPhoIDMVA', #'subleadSigEOverE','subleadRecoSigEOverE','subleadUnsmearedSigmaEoE','subleadAfterSSTrSigEOverE']
+        
+        
+        
+        
+#        self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
+#                             "leadUncorrR9", "leadUncorrEtaWidth", "leadUncorrS4", "leadUncorr_non5x5_r9", "leadUncorr_non5x5_sigmaIetaIeta", "leadUncorr_non5x5_sigmaIetaIphi", "leadUncorr_non5x5_sigmaIphiIphi"]
+#        self.recoSubleadBranches = ["subleadPt", "subleadScEta", "subleadPhi",
+#                             "subleadUncorrR9", "subleadUncorrEtaWidth", "subleadUncorrS4", "subleadUncorr_non5x5_r9", "subleadUncorr_non5x5_sigmaIetaIeta", "subleadUncorr_non5x5_sigmaIetaIphi", "subleadUncorr_non5x5_sigmaIphiIphi"]
 
    # load the dataframe from the input files
    # 
    # --------------------------------------------------------------------------------
    #
-   def loadDF(self, iDir, tDir, t, start, stop, runStart = 0, runStop = 999999999, rndm = 12345):
+   
+   def loadDF(self, iDir, tDir, t, start, stop, rndm = 12345):
 
       dbg = False
       
@@ -306,15 +316,11 @@ class quantileRegression:
             
       # use common names for the traning dataset
       #
-      uniformColumnsNames = ["run", "rho", "nvtx" , "mass", "weight", 
-                             # "SigMoM", "RecoSigMoM",
+      uniformColumnsNames = ["run", "rho", "nvtx" ,"mass","weight", "SigMoM", "RecoSigMoM",
                              "Pt", "ScEta", "Phi",
-                             'ScEnergy', 'ScPreshowerEnergy', "SigmaRR" ,
-                             'PhoIso03', 'ChIso03', 'ChIso03worst' ,
-                             'PhoIDMVA', #  'SigEOverE','RecoSigEOverE','UnsmearedSigEOverE','AfterSSTrSigEOverE',
-                             "R9", "S4", "EtaWidth", "PhiWidth", 
-                             "SigmaIeIe", 'CovarianceIetaIphi', "CovarianceIphiIphi"]
-
+                             "R9", "S4", "SigmaIeIe", "EtaWidth", "PhiWidth", "CovarianceIphiIphi", "SigmaRR" ,
+                             'ScEnergy', 'CovarianceIetaIphi', 'PhoIso03', 'ChIso03', 'ChIso03worst' ,'ScPreshowerEnergy',
+                             'PhoIDMVA','SigEOverE','RecoSigEOverE','UnsmearedSigEOverE','AfterSSTrSigEOverE']
                                                                                 
       # attach the tree structure to the tree names
       #
@@ -338,21 +344,15 @@ class quantileRegression:
          i+=1
       print "Number of events  "
       print df.count()
-
-      # select run period on data
-
-      if (self.dataMC == "data" ):
-         df = df.query('@runStart <= run and run <= @runStop')
-
       df = df.reset_index() # otherwise it will keep the index of each of the added dataframe
       # print df 
 
-#	      # sigmaM/M
-#	      df["SigMoM"]     = 0.5*np.sqrt(np.power(df.leadSigEOverE,2) + np.power(df.subleadSigEOverE,2))
-#	      df["RecoSigMoM"] = 0.5*np.sqrt(np.power(df.leadRecoSigEOverE,2) + np.power(df.subleadRecoSigEOverE,2) + 
-#	                                     (np.power(df.leadSigEOverE,2) - np.power(df.leadUnsmearedSigmaEoE, 2)) +
-#	                                     ( np.power(df.subleadSigEOverE,2) - np.power(df.subleadUnsmearedSigmaEoE, 2)))      
-#	      self.evtBranches += [ "SigMoM", "RecoSigMoM" ]
+      # sigmaM/M
+      df["SigMoM"]          = 0.5*np.sqrt(np.power(df.leadSigEOverE,2) + np.power(df.subleadSigEOverE,2))
+      df["RecoSigMoM"] = 0.5*np.sqrt(np.power(df.leadRecoSigEOverE,2) + np.power(df.subleadRecoSigEOverE,2) + 
+                                          (np.power(df.leadSigEOverE,2) - np.power(df.leadUnsmearedSigmaEoE, 2)) +( np.power(df.subleadSigEOverE,2) - np.power(df.subleadUnsmearedSigmaEoE, 2)))      
+      
+      self.evtBranches += [ "SigMoM", "RecoSigMoM" ]
 
       if (self.dataMC == "data" ):
          # trigger matching logic :         
@@ -397,7 +397,7 @@ class quantileRegression:
          # if the lead triggered use the sublead
          #
          print "Data Sublead"
-         dataSublead = df[ self.evtBranches + self.recoSubleadBranches + self.recoSubleadSSBranches]
+         dataSublead = df[ self.evtBranches + self.recoSubleadBranches ]
          dataSublead = dataSublead.loc[idx_trgEleMatchLead]
          print dataSublead.columns         
          dataSublead.columns = uniformColumnsNames
@@ -406,7 +406,7 @@ class quantileRegression:
          # if the sublead triggered use the lead
          #
          print "Data Lead"
-         dataLead    = df[ self.evtBranches + self.recoLeadBranches + self.recoLeadSSBranches]
+         dataLead    = df[ self.evtBranches + self.recoLeadBranches ]
          dataLead    = dataLead.loc[idx_trgEleMatchSublead]
          dataLead.columns = uniformColumnsNames
          print dataLead.count()
@@ -436,13 +436,13 @@ class quantileRegression:
          print "# sublead eleMatch = ", len(idx_eleMatchSublead)
 
          print "MC Sublead"
-         dataSublead = df[ self.evtBranches + self.recoSubleadBranches + self.recoSubleadSSBranches]
+         dataSublead = df[ self.evtBranches + self.recoSubleadBranches ]
          dataSublead = dataSublead.loc[idx_eleMatchLead]
          dataSublead.columns = uniformColumnsNames
          print dataSublead.count()
          #
          print "MC Lead"
-         dataLead    = df[ self.evtBranches + self.recoLeadBranches + self.recoLeadSSBranches]
+         dataLead    = df[ self.evtBranches + self.recoLeadBranches ]
          dataLead    = dataLead.loc[idx_eleMatchSublead]
          dataLead.columns = uniformColumnsNames
          print dataLead.count()
@@ -458,7 +458,7 @@ class quantileRegression:
 
       # smear the Reco sigmaE/E
       # 
-#       df["RecoSigEOverEsmear"] = np.sqrt(np.power(df.RecoSigEOverE,2) + (np.power(df.SigEOverE,2) - np.power(df.UnsmearedSigEOverE, 2)))
+      df["RecoSigEOverEsmear"] = np.sqrt(np.power(df.RecoSigEOverE,2) + (np.power(df.SigEOverE,2) - np.power(df.UnsmearedSigEOverE, 2)))
       
 
       print "Count final dataset"
@@ -615,10 +615,9 @@ class quantileRegression:
          print var, ' < ', min, ' or ', max, ' < ', var 
 
       df = df.query(querystr)
-      print df
 
       # reset the rows indexing
-      df = df.reset_index(drop=True)
+      df = df.reset_index()
 
       self.df = df   
       
@@ -636,21 +635,19 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #   
-   def trainQuantile(self, var, alpha, pathWeights, EBEE ="", maxDepth = 3, minLeaf = 9, useWeights = False):
+   def trainQuantile(self, var, alpha, pathWeights, EBEE ="", maxDepth = 3, minLeaf = 9):
 
       if   EBEE == 'EB':
          self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
       elif EBEE == 'EE':
          self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
-      elif EBEE == '':
-         print "Training both EB and EE together"
-
+      else:
+         print "Traing both EB and EE together"
+         
       # quantile regressions features
       X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       # target
       Y     = self.df[var]
-      #event weight
-      w     = self.df['weight']
       #   The isolation variables have a discrete single value at zero and then a smooth distribution
       #   To avoid degeneracies in the quantile matching I artificially smear them subracting rho
       #   (like a PU correction)
@@ -667,8 +664,6 @@ class quantileRegression:
          Y = self.df['ChIso03rhoworst']
          var = var +"rho"
 
-      print "Data runMin= ", self.df['run'].min()," - runMax = ", self.df['run'].max()
-
       # train quantile regression
       #
       print mycolors.green+"Train q = "+mycolors.default, alpha
@@ -677,11 +672,7 @@ class quantileRegression:
                                       learning_rate=.1, min_samples_leaf=minLeaf,
                                       min_samples_split=minLeaf)
       t0 = time.time()
-      if (useWeights) : 
-         clf.fit(X, Y, w)
-      else:
-         clf.fit(X, Y)
-         
+      clf.fit(X, Y)
       t1 = time.time()
       print " time = ", t1-t0
       print "Predict"
@@ -1017,43 +1008,52 @@ class quantileRegression:
    # --------------------------------------------------------------------------------
    #
    def correctAllY(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE=""):
-
-      import os.path      
-      corrTargetsName = 'correctedTargets'
-      if   EBEE == 'EB':
-         corrTargetsName += '_EB'
-      if   EBEE == 'EE':
-         corrTargetsName += '_EE'
-      corrTargetsName += '.h5'
+    #new version with path to the weights 
+        import os.path      
+        corrTargetsName = 'correctedTargets'
+        if   EBEE == 'EB':
+                corrTargetsName += '_EB'
+          
+        if   EBEE == 'EE':
+                corrTargetsName += '_EE'
+        corrTargetsName += '.h5'
       
-      if ((os.path.exists(corrTargetsName)) and not( forceComputeCorrections )) :
-         print 'Loading corrected targets from : ', corrTargetsName         
-         self.df = pd.read_hdf(corrTargetsName, 'df')
-         return
-      
-      else:          
-         print 'Corrected variables file (e.g. ', corrTargetsName, ' ) does not exists. This will take a while...'
-
+        if ((os.path.exists(corrTargetsName)) and not( forceComputeCorrections )) :
+            print 'Loading corrected targets from : ', corrTargetsName         
+            self.df = pd.read_hdf(corrTargetsName, 'df')
+            return
+        else:          
+            print 'Corrected variables file (e.g. ', corrTargetsName, ' ) does not exists. This will take a while...'     
+   
          # Here you are cutting out part of the DF !
-         if   EBEE == 'EB':
+        if   EBEE == 'EB':
             print "Correct EB :"
             self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
-         elif EBEE == 'EE':
+        elif EBEE == 'EE':
             print "Correct EE :"
             self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
-         else:
+        else:
             print "Correct both EB and EE together"
-         
-         mcfilename   = "./weights/mc_weights"
-         datafilename = "./weights/data_weights"
-         if   EBEE == 'EB':
+            
+        mcfilename   = "./weights/mc_weights"
+        datafilename = "./weights/data_weights"
+        if   EBEE == 'EB':
             mcfilename   = "./weights/mc_weights_EB"
             datafilename = "./weights/data_weights_EB"
-         elif EBEE == 'EE':
+        elif EBEE == 'EE':
             mcfilename   = "./weights/mc_weights_EE"
-            datafilename = "./weights/data_weights_EE"
-
-         for Y in ylist:
+            datafilename = "./weights/data_weights_EE"    
+        
+        #mcfilename   = x+"/weights/mc_weights"
+        #datafilename = x+"/weights/data_weights"
+        #if   EBEE == 'EB':
+        #    mcfilename   = x+"/weights/mc_weights_EB"
+        #    datafilename = x+"/weights/data_weights_EB"
+        #elif EBEE == 'EE':
+        #    mcfilename   = x+"/weights/mc_weights_EE"
+        #    datafilename = x+"/weights/data_weights_EE"
+            
+        for Y in ylist:
 
             Yvar = Y
             if Y == 'PhoIso03' or Y == 'ChIso03' or Y == 'ChIso03worst':
@@ -1068,19 +1068,13 @@ class quantileRegression:
             self.loadDataWeights(datafilename, Y, quantiles)      
 
             # print self.df
-            #MD self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )
-            self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
+            self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )
 
-         if EBEE != '':
-            print "Writing correctedTargets_",EBEE,".h5"
+        hdf = pd.HDFStore('correctedTargets.h5')
+        if EBEE != '':
             hdf = pd.HDFStore('correctedTargets_'+EBEE+'.h5')
-            hdf.put('df', self.df)
-            hdf.close()
-         else:
-            print "Writing correctedTargets.h5"
-            hdf = pd.HDFStore('correctedTargets.h5')
-            hdf.put('df', self.df)
-            hdf.close()
+        hdf.put('df', self.df)
+        hdf.close()
          
       #print 'Final datafame:', self.df
 
