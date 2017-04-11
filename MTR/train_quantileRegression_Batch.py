@@ -49,14 +49,14 @@ if dataMC == "data":
 #   # to reduce memory consuption just load the locally pre-made h5 file
 #   qr.loadDFh5("/mnt/t3nfs01/data01/shome/giulioisac/dataMC/MTR/df_data_0-5491556.h5", startEvt, stopEvt)
 #   for q in quantiles:
-#      qr.trainQuantile(Y, q, outputDir, maxDepth = imaxDepth, minLeaf = iminLeaf)
+#      qr.trainQuantile(Y, q, outputDir, maxDepth = imaxDepth, minLeaf = iminLeaf,  useWeights = True )
 
    for q in quantiles:
 
       qr = quantileRegression(sys.argv[1])
       # to reduce memory consuption just load the locally pre-made h5 file
       qr.loadDFh5("/mnt/t3nfs01/data01/shome/giulioisac/dataMC/MTR/df_data_0-2000000.h5", startEvt, stopEvt)
-      qr.trainQuantile(Y, q, outputDir, EBEE = sEBEE, maxDepth = imaxDepth, minLeaf = iminLeaf)
+      qr.trainQuantile(Y, q, outputDir, EBEE = sEBEE, maxDepth = imaxDepth, minLeaf = iminLeaf,  useWeights = True)
 
 elif dataMC == "mc":
 #   qr.loadDF("/mnt/t3nfs01/data01/shome/giulioisac/dataMC/nt/double_ele_spring16v2_sync_v1_mc/",
@@ -73,7 +73,7 @@ elif dataMC == "mc":
       qr = quantileRegression(sys.argv[1])
       # to reduce memory consuption just load the locally pre-made h5 file
       qr.loadDFh5("/mnt/t3nfs01/data01/shome/giulioisac/dataMC/MTR/df_mc_0-2000000.h5", startEvt, stopEvt)
-      qr.trainQuantile(Y, q, outputDir, EBEE = sEBEE, maxDepth = imaxDepth, minLeaf = iminLeaf)
+      qr.trainQuantile(Y, q, outputDir, EBEE = sEBEE, maxDepth = imaxDepth, minLeaf = iminLeaf,  useWeights = True)
 
 
 else: print " ERROR: choose data or mc"

@@ -554,7 +554,7 @@ class quantileRegression:
       df.reset_index()
 
       self.df = df
-      print df.count()
+      print "number of events:",df.count()[1]
 
 
 
@@ -615,7 +615,7 @@ class quantileRegression:
          print var, ' < ', min, ' or ', max, ' < ', var 
 
       df = df.query(querystr)
-      print df
+      #print df
 
       # reset the rows indexing
       df = df.reset_index(drop=True)
@@ -677,7 +677,11 @@ class quantileRegression:
                                       learning_rate=.1, min_samples_leaf=minLeaf,
                                       min_samples_split=minLeaf)
       t0 = time.time()
-      if (useWeights) : 
+      if (useWeights) :
+         w=self.df.copy()
+         w.loc[w.query("weight<0").index,"weight"]=0
+         w=w['weight']
+         #w.abs() for absolute values
          clf.fit(X, Y, w)
       else:
          clf.fit(X, Y)
@@ -1016,16 +1020,16 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #
-   def correctAllY(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE=""):
+   def correctAllY(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE="", relativePath=''):
 
       import os.path      
-      corrTargetsName = 'correctedTargets'
+      corrTargetsName = 'correctedTargets'+relativePath
       if   EBEE == 'EB':
          corrTargetsName += '_EB'
       if   EBEE == 'EE':
          corrTargetsName += '_EE'
       corrTargetsName += '.h5'
-      
+
       if ((os.path.exists(corrTargetsName)) and not( forceComputeCorrections )) :
          print 'Loading corrected targets from : ', corrTargetsName         
          self.df = pd.read_hdf(corrTargetsName, 'df')
@@ -1044,14 +1048,14 @@ class quantileRegression:
          else:
             print "Correct both EB and EE together"
          
-         mcfilename   = "./weights/mc_weights"
-         datafilename = "./weights/data_weights"
+         mcfilename   = "./weights/"+relativePath+"/mc_weights"
+         datafilename = "./weights/"+relativePath+"/data_weights"
          if   EBEE == 'EB':
-            mcfilename   = "./weights/mc_weights_EB"
-            datafilename = "./weights/data_weights_EB"
+            mcfilename   += "_EB"
+            datafilename += "_EB"
          elif EBEE == 'EE':
-            mcfilename   = "./weights/mc_weights_EE"
-            datafilename = "./weights/data_weights_EE"
+            mcfilename   += "_EE"
+            datafilename += "_EE"
 
          for Y in ylist:
 
@@ -1073,12 +1077,12 @@ class quantileRegression:
 
          if EBEE != '':
             print "Writing correctedTargets_",EBEE,".h5"
-            hdf = pd.HDFStore('correctedTargets_'+EBEE+'.h5')
+            hdf = pd.HDFStore('correctedTargets'+relativePath+'_'+EBEE+'.h5')
             hdf.put('df', self.df)
             hdf.close()
          else:
             print "Writing correctedTargets.h5"
-            hdf = pd.HDFStore('correctedTargets.h5')
+            hdf = pd.HDFStore('correctedTargets'+relativePath+'.h5')
             hdf.put('df', self.df)
             hdf.close()
          
