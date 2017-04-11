@@ -678,10 +678,10 @@ class quantileRegression:
                                       min_samples_split=minLeaf)
       t0 = time.time()
       if (useWeights) :
-         w=self.df.copy()
-         w.loc[w.query("weight<0").index,"weight"]=0
-         w=w['weight']
-         #w.abs() for absolute values
+       #  w=self.df.copy()
+       #  w.loc[w.query("weight<0").index,"weight"]=0
+       #  w=w['weight']
+       #  w.abs() for absolute values
          clf.fit(X, Y, w)
       else:
          clf.fit(X, Y)
