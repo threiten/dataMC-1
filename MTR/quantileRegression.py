@@ -322,7 +322,7 @@ class quantileRegression:
       for t in self.trees:
          trees.append(self.treeDir+t)
       self.trees = trees
-      print trees
+      print "trees: ",trees
 
       # read the trees into a dataframe
       #
@@ -336,8 +336,8 @@ class quantileRegression:
             df = pd.concat([df, rpd.read_root(fname,t,columns=recoBranches)])
          if dbg : print df.count()
          i+=1
-      print "Number of events  "
-      print df.count()
+      
+      print "number of events:", len(df.index)
 
       # select run period on data
 
@@ -401,7 +401,7 @@ class quantileRegression:
          dataSublead = dataSublead.loc[idx_trgEleMatchLead]
          print dataSublead.columns         
          dataSublead.columns = uniformColumnsNames
-         print dataSublead.count()
+         print "lead size: ", len(dataSublead.index)
          #
          # if the sublead triggered use the lead
          #
@@ -409,7 +409,7 @@ class quantileRegression:
          dataLead    = df[ self.evtBranches + self.recoLeadBranches + self.recoLeadSSBranches]
          dataLead    = dataLead.loc[idx_trgEleMatchSublead]
          dataLead.columns = uniformColumnsNames
-         print dataLead.count()
+         print "sublead size: ", len(dataLead.index)
          
          #
          # concatenate leading and subleadind
@@ -439,13 +439,13 @@ class quantileRegression:
          dataSublead = df[ self.evtBranches + self.recoSubleadBranches + self.recoSubleadSSBranches]
          dataSublead = dataSublead.loc[idx_eleMatchLead]
          dataSublead.columns = uniformColumnsNames
-         print dataSublead.count()
+         print "lead size: ",len(dataSublead.index)
          #
          print "MC Lead"
          dataLead    = df[ self.evtBranches + self.recoLeadBranches + self.recoLeadSSBranches]
          dataLead    = dataLead.loc[idx_eleMatchSublead]
          dataLead.columns = uniformColumnsNames
-         print dataLead.count()
+         print "sublead size: ",len(dataLead.index)
          # 
 
          # concatenate leading and subleadind
@@ -462,7 +462,7 @@ class quantileRegression:
       
 
       print "Count final dataset"
-      print df.count()
+      print len(df.index)
       print df.columns
             
 
@@ -554,7 +554,7 @@ class quantileRegression:
       df.reset_index()
 
       self.df = df
-      print "number of events:",df.count()[1]
+      print "number of events:", len(df.index)
 
 
 
