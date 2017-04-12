@@ -637,7 +637,7 @@ class quantileRegression:
    # --------------------------------------------------------------------------------
    #   
    def trainQuantile(self, var, alpha, pathWeights, EBEE ="", maxDepth = 3, minLeaf = 9, useWeights = False):
-      self.df = self.df.query('weight>0')
+      #self.df = self.df.query('weight>0')
       if   EBEE == 'EB':
          self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
       elif EBEE == 'EE':
