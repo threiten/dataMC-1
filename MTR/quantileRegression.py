@@ -227,7 +227,7 @@ class quantileRegression:
 
       self.fname               = "output.root"
 
-      self.evtBranches         = ["run", "rho", "nvtx", "mass", "weight"]
+      self.evtBranches         = ["run", "rho", "nvtx", "mass", "weight","puweight"]
       
       self.trgBranches         = [ "leadHLT_Ele27_WPTight_Gsf_vMatch", "subleadHLT_Ele27_WPTight_Gsf_vMatch" ]
       
@@ -306,7 +306,7 @@ class quantileRegression:
             
       # use common names for the traning dataset
       #
-      uniformColumnsNames = ["run", "rho", "nvtx" , "mass", "weight", 
+      uniformColumnsNames = ["run", "rho", "nvtx" , "mass", "weight","puweight", 
                              # "SigMoM", "RecoSigMoM",
                              "Pt", "ScEta", "Phi",
                              'ScEnergy', 'ScPreshowerEnergy', "SigmaRR" ,
