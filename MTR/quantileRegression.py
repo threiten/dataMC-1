@@ -302,7 +302,7 @@ class quantileRegression:
       recoBranches = self.data_recoBranches 
       if self.dataMC == "mc" :
          recoBranches = self.mc_recoBranches
-      print recoBranches
+      #print recoBranches
             
       # use common names for the traning dataset
       #
@@ -322,7 +322,7 @@ class quantileRegression:
       for t in self.trees:
          trees.append(self.treeDir+t)
       self.trees = trees
-      print "trees: ",trees
+      #print "trees: ",trees
 
       # read the trees into a dataframe
       #
@@ -392,8 +392,8 @@ class quantileRegression:
          print "# lead trig and eleMatch    = ", len(idx_trgEleMatchLead)
          print "# sublead trig and eleMatch = ", len(idx_trgEleMatchSublead)
          
-         print "evtbranches", self.evtBranches
-         print  "unif", uniformColumnsNames
+         #print "evtbranches", self.evtBranches
+         #print  "unif", uniformColumnsNames
          # if the lead triggered use the sublead
          #
          print "Data Sublead"
@@ -463,7 +463,7 @@ class quantileRegression:
 
       print "Count final dataset"
       print len(df.index)
-      print df.columns
+      #print df.columns
             
 
 
