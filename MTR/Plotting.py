@@ -4,6 +4,7 @@ import pandas as pd
 from pandas import Series, DataFrame
 plt.style.use('ggplot') 
 
+#TODO: insert weighted error
 def plotHistErr(Y, X, Weight=1, Color="r"):
     if (type(Weight) is int): Weight= np.ones(len(Y))
     #Do histograms
@@ -29,6 +30,8 @@ def getHistErr(Y, X, Weight=1):
     bins         = bins/float(np.sum(bins))
     return bins, edges, meanStd
 
+
+#Propagazione degli errori con i pesi???
 def plotHistRatio(Y1,Y2,X,Weight1=1,Weight2=1, Color="r"):
     #Do histogram1
     bins1,edges1,meanStd1=getHistErr(Y1,X,Weight1)
