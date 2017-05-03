@@ -4,7 +4,7 @@ import pandas as pd
 from pandas import Series, DataFrame
 plt.style.use('ggplot') 
 
-#TODO: insert weighted error
+#TODO: insert weighted error: check np.histogram function for eveything. 
 def plotHistErr(Y, X, Weight=1, Color="r"):
     if (type(Weight) is int): Weight= np.ones(len(Y))
     #Do histograms
