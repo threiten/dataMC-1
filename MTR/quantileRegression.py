@@ -551,7 +551,7 @@ class quantileRegression:
       df = df[start:stop]
 
       # df = df.ix[index]
-      df.reset_index()
+      df.reset_index(drop=True)
 
       self.df = df
       print "number of events:", len(df.index)
@@ -646,7 +646,7 @@ class quantileRegression:
          print "Training both EB and EE together"
 
       # quantile regressions features
-      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho',"runperiod"]]
       # target
       Y     = self.df[var]
       #event weight
