@@ -35,7 +35,7 @@ sEBEE      = sys.argv[8]
 
 # qr = quantileRegression(sys.argv[1])
 
-outputDir = "/mnt/t3nfs01/data01/shome/giulioisac/dataMC/MTR/weights/weights_Period_Tot"
+outputDir = "/mnt/t3nfs01/data01/shome/giulioisac/dataMC/MTR/weights/weights_v2"
 if (not os.path.exists(outputDir)):
    print 'Creating output dir:', outputDir
    os.mkdir(outputDir)
@@ -46,14 +46,14 @@ if dataMC == "data":
 
       qr = quantileRegression(sys.argv[1])
       # to reduce memory consuption just load the locally pre-made h5 file
-      qr.loadDFh5("/mnt/t3nfs01/data01/shome/giulioisac/dataMC/MTR/df_data_Tot.h5", startEvt, stopEvt)
+      qr.loadDFh5("/mnt/t3nfs01/data01/shome/giulioisac/dataMC/MTR/df_data_v2_BD.h5", startEvt, stopEvt)
       qr.trainQuantile(Y, q, outputDir, EBEE = sEBEE, maxDepth = imaxDepth, minLeaf = iminLeaf,  useWeights = True)
 
 elif dataMC == "mc":
    for q in quantiles:
       qr = quantileRegression(sys.argv[1])
       # to reduce memory consuption just load the locally pre-made h5 file
-      qr.loadDFh5("/mnt/t3nfs01/data01/shome/giulioisac/dataMC/MTR/df_mc_G.h5", startEvt, stopEvt)
+      qr.loadDFh5("/mnt/t3nfs01/data01/shome/giulioisac/dataMC/MTR/df_mc_v2_BD.h5", startEvt, stopEvt)
       qr.trainQuantile(Y, q, outputDir, EBEE = sEBEE, maxDepth = imaxDepth, minLeaf = iminLeaf,  useWeights = True)
 
 
