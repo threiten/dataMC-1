@@ -17,6 +17,7 @@ from sklearn.externals.joblib import Parallel, parallel_backend, register_parall
 from joblib import delayed
 import os
 import ROOT as rt
+import copy as cp
 
 class mycolors:
    red = '\033[91m'
@@ -605,7 +606,7 @@ class quantileRegression:
 
 
       df = self.df       
-
+      
       querystr = ''
       if inout == 'inside':
          querystr = '@min < {} and {} < @max'.format(var,var)
@@ -621,15 +622,7 @@ class quantileRegression:
       df = df.reset_index(drop=True)
 
       self.df = df   
-      
-
-
-
-
-
-
-
-
+   
 
 
    # run the trainings
@@ -930,6 +923,104 @@ class quantileRegression:
       ycorr = y+"_corr"
       self.df[ycorr] = y_tmp
       # print self.df[ycorr]
+      
+   def correctYTime(self, x, y, quantiles):
+      dbg= False  
+      print "Get corrections for ", y, " with quantiles ", quantiles
+
+      y_tmp = []
+      x2=['Pt', 'ScEta', 'Phi', 'rho',"runperiod"]
+      # quantile regressions features
+      X1    = self.df.loc[:,x]
+      X2    = self.df.loc[:,x2]
+      # target e.g. y = "R9"
+      Y    = self.df[y]
+      print "Features: X = ", x, " target y = ", y, "for mc"
+      print "Features: X = ", x2, " target y = ", y,"for data"
+
+      if y == 'PhoIso03' or y == 'ChIso03' or y == 'ChIso03worst':
+         Y = Y - 0.1*self.df['rho']
+      
+      if dbg : print "Predict MC and DATA for all quantiles"
+      y_mc   = [] # list storing the n=q predictions on mc   for each event
+      y_data = [] # list storing the n=q predictions on data for each event
+
+      for q in range(0, len(quantiles)):
+         y_mc  .append(self.mcclf[q]  .predict(X1))
+         y_data.append(self.dataclf[q].predict(X2))
+      if dbg : print " Initial value: Y = ", Y
+      if dbg : print "                X = ", X
+      if dbg : print " MC-regression = "  ,  y_mc
+      if dbg : print " DATA-regression = ",  y_data
+
+         
+      # loop over the events #  <<-- this sucks... eventually should be vectorized, but I don't know how
+      for ievt in range(0, len(Y)): 
+
+         if dbg : print "#evt = ", ievt
+         
+        # brute force loop over quantiles predictions for MC
+         # I would need anyway a loop to copy them in an array to use smarter search
+         qmc_low  = 0
+         qmc_high = 0
+         q = 0         
+         while q < len(quantiles): # while + if, to avoid bumping the range
+            if dbg : print "mc   ", q, len(quantiles), y_mc[q][ievt],  Y[ievt] 
+            if y_mc[q][ievt] < Y[ievt]:
+               q+=1
+            else:
+               break
+         if q == 0:
+            qmc_low  = 0                               # all shower shapes have a lower bound at 0
+            qmc_high = y_mc[0][ievt]
+         elif q < len(quantiles):
+            qmc_low  = y_mc[q-1][ievt]
+            qmc_high = y_mc[q ][ievt]
+         else:
+            qmc_low  = y_mc[q-1][ievt]
+            qmc_high = quantiles[len(quantiles)-1]*1.2 # some variables (e.g. sigmaRR) have values above 1
+                                                       # to set the value for the highest quantile 20% higher
+         if dbg : print "mc-quantile    ", q, " --> [ ", qmc_low ,qmc_high, " ]"
+         
+         #
+         # q is the one we find on mc
+         if dbg:
+            qt = 0 
+            while qt < len(quantiles):
+               print "data ", qt, len(quantiles), y_data[qt][ievt] # ,  Y[ievt]
+               qt+=1
+         qdata_low  = 0
+         qdata_high = 0
+         if q == 0:
+            qdata_low  = 0                              # all shower shapes have a lower bound at 0
+            qdata_high = y_data[0][ievt]
+         elif q < len(quantiles):
+            qdata_low  = y_data[q-1][ievt]
+            qdata_high = y_data[q ][ievt]
+         else:
+            qdata_low  = y_data[q-1][ievt]
+            qdata_high = quantiles[len(quantiles)-1]*1.2 # see comment above for mc            
+         if dbg : print "data-quantiles  --> [ ", qdata_low ,qdata_high, " ]"
+
+
+
+         # interplopate the correction
+         y_corr = (qdata_high-qdata_low)/(qmc_high-qmc_low) * (Y[ievt] - qmc_low) + qdata_low
+         if dbg : print "Apply correction: Input value = ", Y[ievt], " --> corrected value = ", y_corr
+
+         y_tmp.append(y_corr)
+         
+
+      #   The isolation variables have a discrete single value at zero and then a smooth distribution
+      #   To avoid degeneracies in the quantile matching I artificially smear them subracting rho
+      #   (like a PU correction)
+      if y == "PhoIso03" or y == "ChIso03" or y == "ChIso03worst":
+         y_tmp = y_tmp + 0.1*self.df['rho']
+
+      #self.y_corr = y_tmp
+      ycorr = y+"_corr"
+      self.df[ycorr] = y_tmp
+      # print self.df[ycorr]
 
    # compute ID mvas with different sets of corrected variables
    # 
@@ -1058,7 +1149,7 @@ class quantileRegression:
             datafilename += "_EE"
 
          for Y in ylist:
-
+            
             Yvar = Y
             if Y == 'PhoIso03' or Y == 'ChIso03' or Y == 'ChIso03worst':
                Y = Y + 'rho'
@@ -1092,6 +1183,91 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #
+    #
+   def correctAllYTime(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE="", relativePath='',runperiod=''):
+
+      import os.path      
+      corrTargetsName = 'correctedTargetsPeriod'+str(runperiod)+relativePath
+      if   EBEE == 'EB':
+         corrTargetsName += '_EB'
+      if   EBEE == 'EE':
+         corrTargetsName += '_EE'
+      corrTargetsName += '.h5'
+
+      if ((os.path.exists(corrTargetsName)) and not( forceComputeCorrections )) :
+         print 'Loading corrected targets from : ', corrTargetsName         
+         self.df = pd.read_hdf(corrTargetsName, 'df')
+         return
+      
+      else:          
+         print 'Corrected variables file (e.g. ', corrTargetsName, ' ) does not exists. This will take a while...' 
+      
+         # Here you are cutting out part of the DF !
+         if   EBEE == 'EB':
+            print "Correct EB :"
+            self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
+         elif EBEE == 'EE':
+            print "Correct EE :"
+            self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
+         else:
+            print "Correct both EB and EE together"
+         
+         mcfilename   = "./weights/"+relativePath+"_"+str(runperiod)+"/mc_weights"
+         datafilename = "./weights/"+relativePath+"_Tot/data_weights"
+         if   EBEE == 'EB':
+            mcfilename   += "_EB"
+            datafilename += "_EB"
+         elif EBEE == 'EE':
+            mcfilename   += "_EE"
+            datafilename += "_EE"
+
+         for Y in ylist:
+
+            Yvar = Y
+            if Y == 'PhoIso03' or Y == 'ChIso03' or Y == 'ChIso03worst':
+               Y = Y + 'rho'
+         
+            print "Loading mc weights for ", Y, " : "
+            print "   ", mcfilename
+            self.loadMcWeights(mcfilename, Y, quantiles)      
+
+            print "Loading data weights for ", Y
+            print "   ", datafilename
+            self.loadDataWeights(datafilename, Y, quantiles)      
+
+            self.correctYTime(x, Yvar, quantiles) #, n_jobs=n_jobs )
+
+         if EBEE != '':
+            print "Writing correctedTargets_",EBEE,".h5"
+            hdf = pd.HDFStore('correctedTargets'+relativePath+'_'+EBEE+'.h5')
+            hdf.put('df', self.df)
+            hdf.close()
+         else:
+            print "Writing correctedTargets.h5"
+            hdf = pd.HDFStore('correctedTargets'+relativePath+'.h5')
+            hdf.put('df', self.df)
+            hdf.close()
+
+   def correctAllTime(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE="", relativePath=''):
+      df1=cp.deepcopy(self)
+      df2=cp.deepcopy(self)
+      df3=cp.deepcopy(self)
+      df4=cp.deepcopy(self)
+      df5=cp.deepcopy(self)
+      df1.df=df1.df.query("runperiod==1")
+      df2.df=df2.df.query("runperiod==2")
+      df3.df=df3.df.query("runperiod==3")
+      df4.df=df4.df.query("runperiod==4")
+      df5.df=df5.df.query("runperiod==5")
+      df1.correctAllYTime(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath,1)
+      df2.correctAllYTime(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath,2)
+      df3.correctAllYTime(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath,3)
+      df4.correctAllYTime(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath,4)
+      df5.correctAllYTime(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath,5)
+      frame=[df1.df,df2.df,df3.df,df4.df,df5.df]
+      dataframe=pd.concat(frame)
+      self.df=dataframe.reset_index(drop=True)
+
    def plotQuantiles(self, quantiles, xVar, nbins, xMin, xMax, yVar, xLabel , yLabel, outfile ): # << R9 hardcoded !!! generalize for all vars
 
       xx = self.df.ix[:,[xVar]]
