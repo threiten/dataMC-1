@@ -639,7 +639,7 @@ class quantileRegression:
          print "Training both EB and EE together"
 
       # quantile regressions features
-      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho','runperiod']]
       # target
       Y     = self.df[var]
       #event weight
@@ -666,7 +666,7 @@ class quantileRegression:
       #
       print mycolors.green+"Train q = "+mycolors.default, alpha
       clf = GradientBoostingRegressor(loss='quantile', alpha=alpha,
-                                      n_estimators=250, max_depth=maxDepth,
+                                      n_estimators=500, max_depth=maxDepth,
                                       learning_rate=.1, min_samples_leaf=minLeaf,
                                       min_samples_split=minLeaf)
       t0 = time.time()
@@ -703,7 +703,7 @@ class quantileRegression:
             outputName = pathWeights+"/mc_weights_" + var + "_" + str(alpha) + ".pkl"         
 
       print outputName
-            
+      #work here for the protocol and understand to lower the  check      
       pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
 
 
