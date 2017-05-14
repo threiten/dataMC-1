@@ -639,7 +639,7 @@ class quantileRegression:
          print "Training both EB and EE together"
 
       # quantile regressions features
-      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho','runperiod']]
+      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
       # target
       Y     = self.df[var]
       #event weight
@@ -666,7 +666,7 @@ class quantileRegression:
       #
       print mycolors.green+"Train q = "+mycolors.default, alpha
       clf = GradientBoostingRegressor(loss='quantile', alpha=alpha,
-                                      n_estimators=500, max_depth=maxDepth,
+                                      n_estimators=250, max_depth=maxDepth,
                                       learning_rate=.1, min_samples_leaf=minLeaf,
                                       min_samples_split=minLeaf)
       t0 = time.time()
@@ -1167,13 +1167,13 @@ class quantileRegression:
             self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
 
          if EBEE != '':
-            print "Writing correctedTargets_",EBEE,".h5"
+            print "Writing correctedTargets_",EBEE,Y,".h5"
             hdf = pd.HDFStore('correctedTargets'+relativePath+'_'+EBEE+'.h5')
             hdf.put('df', self.df)
             hdf.close()
          else:
             print "Writing correctedTargets.h5"
-            hdf = pd.HDFStore('correctedTargets'+relativePath+'.h5')
+            hdf = pd.HDFStore('correctedTargets'+relativePath+Y+'.h5')
             hdf.put('df', self.df)
             hdf.close()
          
