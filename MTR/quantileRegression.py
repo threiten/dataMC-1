@@ -639,7 +639,7 @@ class quantileRegression:
          print "Training both EB and EE together"
 
       # quantile regressions features
-      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho','runperiod']]
       # target
       Y     = self.df[var]
       #event weight
