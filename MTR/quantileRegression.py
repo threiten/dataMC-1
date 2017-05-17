@@ -1167,13 +1167,13 @@ class quantileRegression:
             self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
 
          if EBEE != '':
-            print "Writing correctedTargets_",EBEE,Y,".h5"
+            print "Writing correctedTargets_",EBEE,".h5"
             hdf = pd.HDFStore('correctedTargets'+relativePath+'_'+EBEE+'.h5')
             hdf.put('df', self.df)
             hdf.close()
          else:
             print "Writing correctedTargets.h5"
-            hdf = pd.HDFStore('correctedTargets'+relativePath+Y+'.h5')
+            hdf = pd.HDFStore('correctedTargets'+relativePath+'.h5')
             hdf.put('df', self.df)
             hdf.close()
          
@@ -1267,7 +1267,28 @@ class quantileRegression:
       frame=[df1.df,df2.df,df3.df,df4.df,df5.df]
       dataframe=pd.concat(frame)
       self.df=dataframe.reset_index(drop=True)
-
+   
+   
+   def correctAll(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE="", relativePath=''):
+      df1=cp.deepcopy(self)
+      df2=cp.deepcopy(self)
+      df3=cp.deepcopy(self)
+      df4=cp.deepcopy(self)
+      df5=cp.deepcopy(self)
+      df1.df=df1.df.query("runperiod==1")
+      df2.df=df2.df.query("runperiod==2")
+      df3.df=df3.df.query("runperiod==3")
+      df4.df=df4.df.query("runperiod==4")
+      df5.df=df5.df.query("runperiod==5")
+      df1.correctAllY(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(1))
+      df2.correctAllY(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(2))
+      df3.correctAllY(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(3))
+      df4.correctAllY(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(4))
+      df5.correctAllY(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(5))
+      frame=[df1.df,df2.df,df3.df,df4.df,df5.df]
+      dataframe=pd.concat(frame)
+      self.df=dataframe.reset_index(drop=True)
+   
    def plotQuantiles(self, quantiles, xVar, nbins, xMin, xMax, yVar, xLabel , yLabel, outfile ): # << R9 hardcoded !!! generalize for all vars
 
       xx = self.df.ix[:,[xVar]]
