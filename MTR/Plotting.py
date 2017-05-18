@@ -62,9 +62,11 @@ def WeightedMean(values, weights):
         else: return (values * weights).sum() / float(total_weight)
 
 def WeightedStd(values, weights):
-        total_weight = (weights * weights).sum()
-        if total_weight==0: return values.std()
-        else: return 1.0/ np.sqrt(float(total_weight))
+        total_weight = weights.sum()
+        if total_weight==0:return values.std()
+        else: 
+            WeightedMean = (values * weights).sum() / float(total_weight)
+            return np.sqrt((weights*(values -WeightedMean)**2).sum() / total_weight)
 
 def Profile(x,y,nbins,xmin,xmax,ax, color,weight=1):
     if (type(weight) is int): weight=np.ones(len(x))
