@@ -1163,8 +1163,8 @@ class quantileRegression:
             self.loadDataWeights(datafilename, Y, quantiles)      
 
             # print self.df
-            #MD self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )
-            self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
+            self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )
+            # self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
 
          if EBEE != '':
             print "Writing correctedTargets_",EBEE,".h5"
