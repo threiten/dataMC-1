@@ -2,7 +2,89 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from pandas import Series, DataFrame
-plt.style.use('ggplot') 
+plt.style.use('ggplot')
+from copy import copy
+
+def data_mc(df_data,df_mc,var,bins,weight=None,mclabels=[""],normalize=True):
+    
+    weights = df_mc[weight].values if weight else None
+    
+    hists_mc = map(lambda x: np.histogram(df_mc['%s%s' % (var,x)].values,density=normalize,weights=weights,bins=bins)[0], 
+                   mclabels)
+    hist_data,_ =  np.histogram(df_data[var].values, density=False, bins=bins)
+
+    if normalize:
+        hists_mc = map(lambda x: x*hist_data.sum() / x.sum(), hists_mc)    
+    
+    return hist_data,hists_mc
+
+
+def draw_data_mc(bins,data,mc,figsize=(8,6),var=None,logy=False,ratio=False,
+                **kwargs):
+    
+    mcstyle=dict(alpha=0.5,linewidth=0)
+    mcstyle.update(kwargs)
+    datastyle=copy(kwargs)
+    datastyle["alpha"] = 1. # No transparency for data
+    
+    binw=bins[1]-bins[0]
+    if ratio:
+        fig, axes = plt.subplots(2,figsize=figsize,sharex=True,gridspec_kw = {'height_ratios':[3, 1]})
+        top = axes[0]
+        bottom = axes[1]
+        fig.tight_layout()
+    else:
+        fig = plt.figure(figsize=figsize)
+        axes = None
+        top = plt
+    
+    # FIXME: assumes uniform binning
+    xc = bins[1:]-binw*0.5
+    
+    #print mc
+    for hist, style in mc:
+        pkwargs = copy(mcstyle)
+        pkwargs.update(style)
+        top.plot(xc+binw*0.5,hist,**pkwargs)
+    top.errorbar( xc+binw*0.5, data,ls='None', xerr=np.ones_like(data)*binw*0.5, yerr=np.sqrt(data), color='black', 
+                 label='Data', fmt='o', **datastyle )
+        
+    if axes == None: axes = fig.axes
+    
+    if ratio:
+        ratios = []
+        for hist, style in mc:
+            rdata = data / hist
+            rdata_err = np.sqrt(data) / hist
+            ratios.append((rdata,rdata_err))
+            rkwargs = {}
+            if len(mc) == 1: rkwargs['color'] = 'black'
+            elif "color" in style: rkwargs['color'] = style['color']
+            rkwargs.update(datastyle)
+            bottom.errorbar( xc+binw*0.5, rdata,ls='None', xerr=np.ones_like(rdata)*binw*0.5, yerr=rdata_err, 
+                        **rkwargs)
+        
+        bottom.plot( (bins[0],bins[-1]), (1,1), 'k-' )
+        bottom.set_ylabel('Data / MC')
+        bottom.set_ylim(0,2)
+    
+    if logy:
+        axes[0].set_yscale('log')
+    axes[0].set_xlim(bins[0],bins[-1])
+    
+    unit = None    
+    if var != None:
+        if type(var) != str:
+            var, unit = var
+        if unit: var += " (%s)" % unit
+        axes[-1].set_xlabel(var)
+    ylabel = 'Events / %1.3g' % binw
+    if unit:
+        ylabel += ' %s' % unit
+    axes[0].set_ylabel(ylabel)
+
+    top.legend(loc='best')
+        
 
 #TODO: insert weighted error: check np.histogram function for eveything. 
 def plotHistErr(Y, X, Weight=1, Color="r"):
