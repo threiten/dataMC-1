@@ -1164,7 +1164,10 @@ class quantileRegression:
 
             # print self.df
             #self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )
-            self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
+            if ( (Y=="SigmaIeIe") and (EBEE=="EB")):
+                self.df["SigmaIeIe_corr"]=self.df["SigmaIeIe"]
+            else:
+                self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
 
          if EBEE != '':
             print "Writing correctedTargets_",EBEE,".h5"
