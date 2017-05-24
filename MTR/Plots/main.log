@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2016.10.7)  24 MAY 2017 18:09
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2016.10.7)  24 MAY 2017 18:37
 entering extended mode
  %&-line parsing enabled.
 **main.tex
@@ -80,24 +80,32 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 \openout2 = `section1.aux'.
 
 
-(./section1.tex) [2
+(./section1.tex <figuraprova.png, id=8, 433.62pt x 289.08pt>
+File: figuraprova.png Graphic file (type png)
 
-] (./main.aux (./section1.aux)) ) 
+<use figuraprova.png>
+Overfull \hbox (66.79134pt too wide) in paragraph at lines 7--7
+ [] 
+ []
+
+) [2
+
+] [3 <./figuraprova.png>] (./main.aux (./section1.aux)) ) 
 Here is how much of TeX's memory you used:
- 588 strings out of 256216
- 6831 string characters out of 1917072
+ 594 strings out of 256216
+ 6929 string characters out of 1917072
  54477 words of memory out of 1500000
- 3920 multiletter control sequences out of 10000+200000
+ 3924 multiletter control sequences out of 10000+200000
  7580 words of font info for 27 fonts, out of 1200000 for 2000
  645 hyphenation exceptions out of 8191
- 25i,6n,19p,197b,189s stack positions out of 5000i,500n,6000p,200000b,15000s
-</usr/share/texmf/fonts/type1/bluesky/cm/cmbx1
-2.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmr10.pfb></usr/share/texmf/font
-s/type1/bluesky/cm/cmr12.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmr17.pfb
->
-Output written on main.pdf (2 pages, 16944 bytes).
+ 25i,6n,19p,197b,243s stack positions out of 5000i,500n,6000p,200000b,15000s
+</usr/share/texmf/font
+s/type1/bluesky/cm/cmbx12.pfb></usr/share/texmf/fonts/type1/bluesky/cm/cmr10.pf
+b></usr/share/texmf/fonts/type1/bluesky/cm/cmr12.pfb></usr/share/texmf/fonts/ty
+pe1/bluesky/cm/cmr17.pfb>
+Output written on main.pdf (3 pages, 32856 bytes).
 PDF statistics:
- 25 PDF objects out of 1000 (max. 8388607)
+ 30 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 6 words of extra memory for PDF output out of 10000 (max. 10000000)
 
