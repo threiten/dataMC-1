@@ -2,4 +2,6 @@
 Ciao 
 
 
-\begin{figure}[H]\begin{center}\includegraphics[width=15.0cm][figuraprova.png}\end{center}\end{figure}
+
+
+\begin{figure}[H]\begin{center}\includegraphics[width=15.0cm]{figuraprova.png}\end{center}\end{figure}
