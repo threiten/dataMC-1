@@ -180,3 +180,4 @@ def exportToPdf(name='sample',section='sample',mode='a'):
     f.write('\\includegraphics[width=1.0\linewidth]{'+name+'.png}')
     f.write('\\end{center}')
     f.write('\\end{figure}')
+    f.close()
