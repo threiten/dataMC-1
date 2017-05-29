@@ -150,9 +150,10 @@ def WeightedStd(values, weights):
             WeightedMean = (values * weights).sum() / float(total_weight)
             return np.sqrt((weights*(values -WeightedMean)**2).sum() / total_weight)
 
-def Profile(x,y,nbins,xmin,xmax,ax, color,weight=1):
+def Profile(x,y,nbins,xmin,xmax,ymin,ymax, ax, color,weight=1):
     if (type(weight) is int): weight=np.ones(len(x))
-    df = DataFrame({'x' : x , 'y' : y, 'weight': weight})    
+    df = DataFrame({'x' : x , 'y' : y, 'weight': weight})   
+    df=df.query("x>="+str(xmin)+" & x<="+str(xmax)).query("y>="+str(ymin)+" & y<="+str(ymax))
     binedges = xmin + ((xmax-xmin)/nbins) * np.arange(nbins+1)
     df['bin'] = np.digitize(df['x'],binedges) 
     bincenters = xmin + ((xmax-xmin)/nbins)*np.arange(nbins) + ((xmax-xmin)/(2*nbins))
