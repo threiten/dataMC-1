@@ -154,7 +154,14 @@ class Corrector:
       dataqtls = self.dataqtls[:,iev]
       Y = self.Y[iev]
       
-      qmc   = bisect.bisect_right(mcqtls,Y)
+      qmc =0
+      #qmc   = bisect.bisect_right(mcqtls,Y)
+      while qmc < len(mcqtls): # while + if, to avoid bumping the range
+         if mcqtls[qmc] < Y:
+            qmc+=1
+         else:
+            break
+
       if qmc == 0:
          qmc_low,qdata_low   = 0,0                              # all shower shapes have a lower bound at 0
          qmc_high,qdata_high = mcqtls[qmc],dataqtls[qmc]
@@ -163,7 +170,8 @@ class Corrector:
          qmc_high,qdata_high = mcqtls[qmc],dataqtls[qmc]
       else:
          qmc_low,qdata_low   = mcqtls[qmc-1],mcqtls[qmc-1]
-         qmc_high,qdata_high = mcqtls[-1]*1.2,dataqtls[-1]*1.2   # some variables (e.g. sigmaRR) have values above 1
+         #qmc_high,qdata_high = mcqtls[-1]*1.2,dataqtls[-1]*1.2   # some variables (e.g. sigmaRR) have values above 1
+         qmc_high,qdata_high = 1.08,1.08   # some variables (e.g. sigmaRR) have values above 1
          # to set the value for the highest quantile 20% higher
                                                                        
       return (qdata_high-qdata_low)/(qmc_high-qmc_low) * (Y - qmc_low) + qdata_low
@@ -1174,8 +1182,11 @@ class quantileRegression:
       Y = Y.values.reshape(-1,1)
       Z = np.hstack([X,Y])
                
-      Ycorr = np.concatenate(Parallel(n_jobs=n_jobs,verbose=20)(delayed(applyCorrection)(self.mcclf,self.dataclf,ch[:,:-1],ch[:,-1])
-                                      for ch in np.array_split(Z,n_jobs) ) )
+#      Ycorr = np.concatenate(Parallel(n_jobs=n_jobs,verbose=20)(delayed(applyCorrection)(self.mcclf,self.dataclf,ch[:,:-1],ch[:,-1])
+#                                      for ch in np.array_split(Z,n_jobs) ) )
+
+      Ycorr = np.concatenate([applyCorrection(self.mcclf,self.dataclf,ch[:,:-1],ch[:,-1])
+                                      for ch in np.array_split(Z,n_jobs) ] )
       
       if store:
          self.df[y+"_corr"] = Ycorr
@@ -1254,7 +1265,8 @@ class quantileRegression:
             if ( (Y=="SigmaIeIe") and (EBEE=="EB")):
                 self.df["SigmaIeIe_corr"]=self.df["SigmaIeIe"]
             else:
-                self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
+                #self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
+                self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )   
 
          if EBEE != '':
             print "Writing correctedTargets_",EBEE,".h5"
