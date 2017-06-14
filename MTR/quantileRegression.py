@@ -105,7 +105,7 @@ class IdMvaComputer:
 
    def __init__(self,wd,weightsEB,weightsEE,correct=[]):
       rt.gROOT.LoadMacro(os.path.join(wd,"phoIDMVAonthefly.C"))
-      #print "inside init"
+      
       self.rhoSubtraction = False
       if type(correct) == dict:
          self.rhoSubtraction = correct["rhoSubtraction"]
@@ -114,14 +114,14 @@ class IdMvaComputer:
 
       self.X = rt.phoIDInput()
       self.readerEB = rt.bookReadersEB(weightsEB, self.X)
-      #print "entering readerEE"
+      
       self.readerEE = rt.bookReadersEE(weightsEE, self.X, self.rhoSubtraction)
-      #print "outside it"
+      
       # print ("IdMvaComputer.__init__")
       
       columns = ["ScEnergy","ScEta","rho","R9","SigmaIeIe","PhiWidth","EtaWidth","CovarianceIetaIphi","S4","PhoIso03","ChIso03","ChIso03worst","SigmaRR","ScPreshowerEnergy","Pt"]
 
-      #print "pass 1"
+      
       if self.rhoSubtraction:
          self.effareas = np.array([[0.0000, 0.1210],   
                                    [1.0000, 0.1107],
@@ -134,7 +134,7 @@ class IdMvaComputer:
          
       # make list of input columns
       self.columns = map(lambda x: x+"_corr" if x in correct else x, columns)
-      #print "pass2"
+      
    def __call__(self,X):
 
       # make sure of order of the input columns and convert to a numpy array
@@ -1180,8 +1180,8 @@ class quantileRegression:
             if ( (Y=="SigmaIeIe") and (EBEE=="EB")):
                 self.df["SigmaIeIe_corr"]=self.df["SigmaIeIe"]
             else:
-                #self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
-                self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )   
+                self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
+                #self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )   
 
          if EBEE != '':
             print "Writing correctedTargets_",EBEE,".h5"
