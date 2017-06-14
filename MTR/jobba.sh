@@ -4,7 +4,7 @@ echo SWITCH OFF DISPLAY
 export DISPLAY=
 echo DISPLAY = $DISPLAY
 
-source /mnt/t3nfs01/data01/shome/giulioisac/setupython.sh
+source /mnt/t3nfs01/data01/shome/mdonega/bootCVMFS.sh
 
 echo JOBBA: Training on $1 for Y = $2 , quantile = $3,  startEvt = $4, stopEvt = $5, maxDepth = $6, minLeaf = $7, EBEE = $8
 

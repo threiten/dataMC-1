@@ -3,10 +3,10 @@
 k=0.1
 
 
-for var in  "SigmaIeIe";# "R9" "S4" "EtaWidth" "PhiWidth" "CovarianceIetaIphi" "CovarianceIphiIphi"; # "SigmaRR" "PhoIso03" "ChIso03" "ChIso03worst";
+for var in   "R9" 'SigmaIeIe' "S4" "EtaWidth" "PhiWidth" "CovarianceIetaIphi" "CovarianceIphiIphi"; # "SigmaRR" "PhoIso03" "ChIso03" "ChIso03worst";
 do
     echo Jobs for $var
-    for i in `seq 1 1`;
+    for i in `seq 1 9`;
     do
 	q=`echo "$k*$i"|bc`
 	
