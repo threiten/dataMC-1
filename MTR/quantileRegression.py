@@ -68,7 +68,7 @@ class Corrector:
       Y = self.Y[iev]
       
       qmc =0
-      #qmc   = bisect.bisect_right(mcqtls,Y)
+      
       while qmc < len(mcqtls): # while + if, to avoid bumping the range
          if mcqtls[qmc] < Y:
             qmc+=1
@@ -82,9 +82,8 @@ class Corrector:
          qmc_low,qdata_low   = mcqtls[qmc-1],dataqtls[qmc-1]
          qmc_high,qdata_high = mcqtls[qmc],dataqtls[qmc]
       else:
-         qmc_low,qdata_low   = mcqtls[qmc-1],mcqtls[qmc-1]
-         #qmc_high,qdata_high = mcqtls[-1]*1.2,dataqtls[-1]*1.2   # some variables (e.g. sigmaRR) have values above 1
-         qmc_high,qdata_high = 1.08,1.08   # some variables (e.g. sigmaRR) have values above 1
+         qmc_low,qdata_low   = mcqtls[qmc-1],dataqtls[qmc-1]
+         qmc_high,qdata_high = mcqtls[len(mcqtls)-1]*1.2,dataqtls[len(dataqtls)-1]*1.2
          # to set the value for the highest quantile 20% higher
                                                                        
       return (qdata_high-qdata_low)/(qmc_high-qmc_low) * (Y - qmc_low) + qdata_low
@@ -1097,11 +1096,10 @@ class quantileRegression:
       Y = Y.values.reshape(-1,1)
       Z = np.hstack([X,Y])
                
-#      Ycorr = np.concatenate(Parallel(n_jobs=n_jobs,verbose=20)(delayed(applyCorrection)(self.mcclf,self.dataclf,ch[:,:-1],ch[:,-1])
-#                                      for ch in np.array_split(Z,n_jobs) ) )
+      Ycorr = np.concatenate(Parallel(n_jobs=n_jobs,verbose=20)(delayed(applyCorrection)(self.mcclf,self.dataclf,ch[:,:-1],ch[:,-1]) for ch in np.array_split(Z,n_jobs) ) )
 
-      Ycorr = np.concatenate([applyCorrection(self.mcclf,self.dataclf,ch[:,:-1],ch[:,-1])
-                                      for ch in np.array_split(Z,n_jobs) ] )
+      #Ycorr = np.concatenate([applyCorrection(self.mcclf,self.dataclf,ch[:,:-1],ch[:,-1])
+   #                                   for ch in np.array_split(Z,n_jobs) ] )
       
       if store:
          self.df[y+"_corr"] = Ycorr
@@ -1177,11 +1175,8 @@ class quantileRegression:
 
             # print self.df
             #self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )
-            if ( (Y=="SigmaIeIe") and (EBEE=="EB")):
-                self.df["SigmaIeIe_corr"]=self.df["SigmaIeIe"]
-            else:
-                self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
-                #self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )   
+            self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
+            #self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )   
 
          if EBEE != '':
             print "Writing correctedTargets_",EBEE,".h5"
@@ -1196,6 +1191,77 @@ class quantileRegression:
          
       #print 'Final datafame:', self.df
 
+   def correctAllYParallel(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE="", relativePath=''):
+
+      import os.path      
+      corrTargetsName = 'correctedTargets'+relativePath
+      if   EBEE == 'EB':
+         corrTargetsName += '_EB'
+      if   EBEE == 'EE':
+         corrTargetsName += '_EE'
+      corrTargetsName += '.h5'
+
+      if ((os.path.exists(corrTargetsName)) and not( forceComputeCorrections )) :
+         print 'Loading corrected targets from : ', corrTargetsName         
+         self.df = pd.read_hdf(corrTargetsName, 'df')
+         return
+      
+      else:          
+         print 'Corrected variables file (e.g. ', corrTargetsName, ' ) does not exists. This will take a while...'
+
+         # Here you are cutting out part of the DF !
+         if   EBEE == 'EB':
+            print "Correct EB :"
+            self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
+         elif EBEE == 'EE':
+            print "Correct EE :"
+            self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
+         else:
+            print "Correct both EB and EE together"
+         
+         mcfilename   = "./weights/"+relativePath+"/mc_weights"
+         datafilename = "./weights/"+relativePath+"/data_weights"
+         if   EBEE == 'EB':
+            mcfilename   += "_EB"
+            datafilename += "_EB"
+         elif EBEE == 'EE':
+            mcfilename   += "_EE"
+            datafilename += "_EE"
+
+         for Y in ylist:
+            
+            Yvar = Y
+            if Y == 'PhoIso03' or Y == 'ChIso03' or Y == 'ChIso03worst':
+               Y = Y + 'rho'
+         
+            print "Loading mc weights for ", Y, " : "
+            print "   ", mcfilename
+            self.loadMcWeights(mcfilename, Y, quantiles)      
+
+            print "Loading data weights for ", Y
+            print "   ", datafilename
+            self.loadDataWeights(datafilename, Y, quantiles)      
+
+            # print self.df
+            #self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )
+            
+            #self.correctY(x, Yvar, quantiles) #, n_jobs=n_jobs )
+            self.correctYfast(x, Yvar, quantiles, n_jobs=n_jobs )   
+
+         if EBEE != '':
+            print "Writing correctedTargets_",EBEE,".h5"
+            hdf = pd.HDFStore('correctedTargets'+relativePath+'_'+EBEE+'.h5')
+            hdf.put('df', self.df)
+            hdf.close()
+         else:
+            print "Writing correctedTargets.h5"
+            hdf = pd.HDFStore('correctedTargets'+relativePath+'.h5')
+            hdf.put('df', self.df)
+            hdf.close()
+         
+      #print 'Final datafame:', self.df
+
+   
    # Scatter plots to check the quantiles
    # 
    # --------------------------------------------------------------------------------
@@ -1302,6 +1368,26 @@ class quantileRegression:
       df3.correctAllY(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(3))
       df4.correctAllY(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(4))
       df5.correctAllY(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(5))
+      frame=[df1.df,df2.df,df3.df,df4.df,df5.df]
+      dataframe=pd.concat(frame)
+      self.df=dataframe.reset_index(drop=True)
+   
+   def correctAllParallel(self, x, ylist, quantiles, n_jobs=1, forceComputeCorrections = False, EBEE="", relativePath=''):
+      df1=cp.deepcopy(self)
+      df2=cp.deepcopy(self)
+      df3=cp.deepcopy(self)
+      df4=cp.deepcopy(self)
+      df5=cp.deepcopy(self)
+      df1.df=df1.df.query("runperiod==1")
+      df2.df=df2.df.query("runperiod==2")
+      df3.df=df3.df.query("runperiod==3")
+      df4.df=df4.df.query("runperiod==4")
+      df5.df=df5.df.query("runperiod==5")
+      df1.correctAllYParallel(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(1))
+      df2.correctAllYParallel(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(2))
+      df3.correctAllYParallel(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(3))
+      df4.correctAllYParallel(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(4))
+      df5.correctAllYParallel(x, ylist, quantiles, n_jobs, forceComputeCorrections, EBEE, relativePath+str(5))
       frame=[df1.df,df2.df,df3.df,df4.df,df5.df]
       dataframe=pd.concat(frame)
       self.df=dataframe.reset_index(drop=True)
