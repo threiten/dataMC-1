@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from pandas import Series, DataFrame
-plt.style.use('ggplot')
 from copy import copy
 
 def data_mc(df_data,df_mc,var,bins,weight=None,mclabels=[""],normalize=True):

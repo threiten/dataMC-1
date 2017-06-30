@@ -4,7 +4,6 @@
 *.tex
 *.aux
 *.tex~
-*.png
 .ipynb_checkpoints
 
 # Compiled source #
