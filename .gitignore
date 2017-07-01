@@ -3,6 +3,7 @@
 *#
 *.tex
 *.aux
+*.png
 *.tex~
 .ipynb_checkpoints
 
