@@ -235,13 +235,13 @@ class quantileRegression:
 
       self.trees    = ""
 
-      self.fname               = "output.root"
+      self.fname               = "outputDataMC.root"
 
       self.evtBranches         = ["run", "rho", "nvtx", "mass", "weight","puweight"]
       
-      self.trgBranches         = [ "leadHLT_Ele27_WPTight_Gsf_vMatch", "subleadHLT_Ele27_WPTight_Gsf_vMatch" ]
+      self.trgBranches         = [ "probeHLT_Ele35_WPTight_GsfMatch", "tagHLT_Ele35_WPTight_GsfMatch" ]
       
-      self.eleMatchBranches    = [ "leadEleMatch", "subleadEleMatch" ]
+      self.eleMatchBranches    = [ "probeEleMatch", "tagEleMatch" ]
       
       self.recoLeadBranches    = ["leadPt", "leadScEta", "leadPhi",
                                   'leadScEnergy', 'leadScPreshowerEnergy', "leadSigmaRR" ,
@@ -259,6 +259,19 @@ class quantileRegression:
       self.recoSubleadSSBranches  = ["subleadR9", "subleadS4", "subleadEtaWidth", "subleadPhiWidth", 
                                      "subleadSigmaIeIe", 'subleadCovarianceIetaIphi', "subleadCovarianceIphiIphi" ]
       
+      self.recoProbeBranches = ["probePt", "probeEta", "probePhi",
+                                'probeEnergy', 'probeScPreshowerEnergy', "probeSigmaRR" ,
+                                'probePhoIso', 'probeChIso', 'probeChIso03worst']
+      
+      self.recoTagBranches = ['tagPt', 'tagEta', 'tagPhi', 
+                              'tagEnergy', 'tagScPreshowerEnergy', 'tagSigmaRR' ,
+                              'tagPhoIso', 'tagChIso', 'tagChIso03worst']
+
+      self.recoProbeSSBranches  = ["probeR9", "probeS4", "probeEtaWidth", "probePhiWidth", 
+                                  "probeSigmaIeIe", 'probeCovarianceIetaIphi', "probeCovarianceIphiIphi" ]
+
+      self.recoTagSSBranches  = ["tagR9", "tagS4", "tagEtaWidth", "tagPhiWidth", 
+                                     "tagSigmaIeIe", 'tagCovarianceIetaIphi', "tagCovarianceIphiIphi" ]
       # the uncorrected variables are used only if you switched on the corrections in flashgg
       # NB: there is no PhiWIdth uncorrected !
       #      self.recoLeadUncorrSSBranches  = ["leadUncorrR9", "leadUncorrS4", "leadUncorrEtaWidth", "leadPhiWidth",
@@ -271,7 +284,10 @@ class quantileRegression:
       
       self.data_recoBranches   = self.evtBranches  + self.trgBranches + self.eleMatchBranches + self.recoLeadBranches + self.recoLeadSSBranches + self.recoSubleadBranches + self.recoSubleadSSBranches 
       self.mc_recoBranches     = self.evtBranches  +                    self.eleMatchBranches + self.recoLeadBranches + self.recoLeadSSBranches + self.recoSubleadBranches + self.recoSubleadSSBranches 
-
+      
+      self.data_recoBranchesTnP = self.evtBranches  + self.trgBranches + self.eleMatchBranches + self.recoProbeBranches + self.recoProbeSSBranches + self.recoTagBranches + self.recoTagSSBranches 
+      self.mc_recoBranchesTnP = self.evtBranches  + self.eleMatchBranches + self.recoProbeBranches + self.recoProbeSSBranches + self.recoTagBranches + self.recoTagSSBranches
+ 
       self.df = 0
       
       self.y_corr = 0
@@ -527,18 +543,105 @@ class quantileRegression:
          
 
 
-
-
-
-
-
+   def loadTnPDF(self, iDir, tDir, t, start, stop, runStart = 0, runStop = 999999999, rndm = 12345, outDir = "."):
       
+      dbg = False
+      
+      self.inputDir = iDir
+      self.treeDir  = tDir
+      self.trees = t 
+      
+      fname    = self.inputDir+self.fname
+      
+      print "NT branches: "
+      recoBranches = self.data_recoBranchesTnP 
+      if self.dataMC == "mc" :
+         recoBranches = self.mc_recoBranchesTnP
+      print recoBranches
+                                                                                
+      # attach the tree structure to the tree names
+      #
+      trees = []
+      for t in self.trees:
+         trees.append(self.treeDir+t)
+      self.trees = trees
+
+      print "Adding trees into a DataFrame"
+      i = 0
+      for t in self.trees:
+         print "  adding ", t
+         if i == 0:            
+            df = rpd.read_root(fname,t,columns=recoBranches)
+         else:
+            df = pd.concat([df, rpd.read_root(fname,t,columns=recoBranches)])
+         if dbg : print df.count()
+         i+=1
+      
+      print "number of events:", len(df.index)
+      
+      print "Count final dataset"
+      print len(df.index)
+      #print df.columns
+            
+
+
+
+      # apply basic selection
+      #
+      df = df.query('@self.ptmin < probePt and probePt < @self.ptmax and @self.etamin < probeEta and probeEta < @self.etamax and @self.phimin < probePhi and probePhi < @self.phimax')
+      
+      print mycolors.green+"Apply basic selection"+mycolors.default
+      print " ptmin  = ", self.ptmin ,"\n ptmax  = ", self.ptmax , " \n etamin = ", self.etamin, " \n etamax = ", self.etamax, " \n phimin = ", self.phimin, " \n phimax = ", self.phimax
+
+      # print df  
+
+      # reshuffle events
+      #
+      print mycolors.green+"Reshuffle events"+mycolors.default, "rndm seed  = ", rndm
+      rndseed = rndm
+      np.random.seed(rndseed)
+      #      df['random_index'] = np.random.permutation(range(df.index.size))
+      #      df.sort_values(by='random_index',inplace=True)
+      #      df.set_index('random_index',inplace=True)
+      #      print df
+      index = list(df.index)
+      np.random.shuffle(index)
+
+
+      # Select a subset of events
+      if   start == -1 :
+         print "Invalid start-evt = -1 "
+         return
+      ## if stop  == -1 :
+      ##    stop = len(df.index)
+
+      print mycolors.green+"Selecting events",mycolors.default, " [", start, ", ", stop, "]  out of ", len(df.index)
+      index = index[start:stop]
+      # df = df[start:stop]
+
+      df = df.ix[index]
+      df.reset_index(drop=True, inplace=True)
+
+      # print df
+      self.df = df
+
+      print "DataFrame size = ", len(self.df.index)
+
+      # save the DF locally for future use
+      if stop == -1:
+         dfname = outDir + '/df_' + self.label + '_All.h5'
+      else:
+         dfname = outDir + '/df_' + self.label + '_' + str(start) + '-' + str(stop) + '.h5'
+      hdf = pd.HDFStore(dfname)
+      hdf.put('df', self.df)
+      hdf.close()
+
 
    # load the dataframe from an already existing h5 file
    # 
    # --------------------------------------------------------------------------------
    #
-   def loadDFh5(self, h5name, start, stop):
+   def loadDFh5(self, h5name, start, stop, rndm = 12345, resh=False):
 
       df = 0
       import os.path
@@ -555,13 +658,21 @@ class quantileRegression:
          return
       if stop  == -1 :
          stop = len(df.index)
+      
+      index = list(df.index)
+
+      if resh:
+         print mycolors.green+"Reshuffle events"+mycolors.default, "rndm seed  = ", rndm
+         np.random.seed(rndm)
+         #index = list(df.index)
+         np.random.shuffle(index)
 
       print mycolors.green+"Selecting events",mycolors.default, " [", start, ", ", stop, "]  out of ", len(df.index)
-      # index = index[start:stop]
-      df = df[start:stop]
+      index = index[start:stop]
+      #df = df[start:stop]
 
-      # df = df.ix[index]
-      df.reset_index(drop=True)
+      df = df.ix[index]
+      df.reset_index(drop=True, inplace=True)
 
       self.df = df
       print "number of events:", len(df.index)
@@ -648,7 +759,7 @@ class quantileRegression:
          print "Training both EB and EE together"
 
       # quantile regressions features
-      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      X     = self.df.loc[:,['probePt', 'probeEta', 'probePhi', 'rho']]
       # target
       Y     = self.df[var]
       #event weight
