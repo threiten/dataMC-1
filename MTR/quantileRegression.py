@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt #Use "%matplotlib inline", when using this with ipyparallel
 from root_numpy import root2array, tree2array
 from root_numpy import fill_hist
 from sklearn.tree import DecisionTreeRegressor
@@ -12,13 +12,13 @@ import time
 import pickle
 import gzip
 import bisect
-# from joblib import Parallel, delayed
-from sklearn.externals.joblib import Parallel, parallel_backend, register_parallel_backend
-from joblib import delayed
+from joblib import Parallel, delayed
+#from sklearn.externals.joblib import Parallel, parallel_backend, register_parallel_backend
+#from joblib import delayed
 import os
 import ROOT as rt
 import copy as cp
-from sklearn.ensemble import RandomForestRegressor
+#from sklearn.ensemble import RandomForestRegressor
 
 
 class mycolors:
@@ -103,7 +103,7 @@ def applyCorrection(mcclf,dataclf,X,Y):
 class IdMvaComputer:
 
    def __init__(self,wd,weightsEB,weightsEE,correct=[]):
-      rt.gROOT.LoadMacro(os.path.join(wd,"phoIDMVAonthefly.C"))
+      rt.gROOT.LoadMacro("/mnt/t3nfs01/data01/shome/threiten/QReg/dataMC-1/MTR/phoIDMVAonthefly.C")
       
       self.rhoSubtraction = False
       if type(correct) == dict:
@@ -118,7 +118,7 @@ class IdMvaComputer:
       
       # print ("IdMvaComputer.__init__")
       
-      columns = ["ScEnergy","ScEta","rho","R9","SigmaIeIe","PhiWidth","EtaWidth","CovarianceIetaIphi","S4","PhoIso03","ChIso03","ChIso03worst","SigmaRR","ScPreshowerEnergy","Pt"]
+      columns = ["probeEnergy","probeScEta","rho","probeR9","probeSigmaIeIe","probePhiWidth","probeEtaWidth","probeCovarianceIetaIphi","probeS4","probePhoIso","probeChIso","probeChIso03worst","probeSigmaRR","probeScPreshowerEnergy","probePt"]
 
       
       if self.rhoSubtraction:
@@ -210,7 +210,6 @@ class IsolationCorrector:
       Xvals = X[ ['rho','ScEta','PhoIso03'] ].values
 
       return np.apply_along_axis( self.predict, 1, Xvals ).ravel()
-   
    def predict(self,row):
       rho,eta,iso = row[0],np.abs(row[1]),row[2]
       return iso+self.isoCorr.getExtra(eta,rho)
@@ -235,11 +234,11 @@ class quantileRegression:
 
       self.trees    = ""
 
-      self.fname               = "outputDataMC.root"
+      self.fname               = "/outputDataMC.root"
 
       self.evtBranches         = ["run", "rho", "nvtx", "mass", "weight","puweight"]
       
-      self.trgBranches         = [ "probeHLT_Ele35_WPTight_GsfMatch", "tagHLT_Ele35_WPTight_GsfMatch" ]
+      self.trgBranches         = [ "probeHLT_Ele35_WPTight_Gsf_vMatch", "tagHLT_Ele35_WPTight_Gsf_vMatch" ]
       
       self.eleMatchBranches    = [ "probeEleMatch", "tagEleMatch" ]
       
@@ -259,11 +258,11 @@ class quantileRegression:
       self.recoSubleadSSBranches  = ["subleadR9", "subleadS4", "subleadEtaWidth", "subleadPhiWidth", 
                                      "subleadSigmaIeIe", 'subleadCovarianceIetaIphi', "subleadCovarianceIphiIphi" ]
       
-      self.recoProbeBranches = ["probePt", "probeEta", "probePhi",
+      self.recoProbeBranches = ["probePt", "probeScEta", "probePhi",
                                 'probeEnergy', 'probeScPreshowerEnergy', "probeSigmaRR" ,
                                 'probePhoIso', 'probeChIso', 'probeChIso03worst']
       
-      self.recoTagBranches = ['tagPt', 'tagEta', 'tagPhi', 
+      self.recoTagBranches = ['tagPt', 'tagScEta', 'tagPhi', 
                               'tagEnergy', 'tagScPreshowerEnergy', 'tagSigmaRR' ,
                               'tagPhoIso', 'tagChIso', 'tagChIso03worst']
 
@@ -543,7 +542,7 @@ class quantileRegression:
          
 
 
-   def loadTnPDF(self, iDir, tDir, t, start, stop, runStart = 0, runStop = 999999999, rndm = 12345, outDir = "."):
+   def loadTnPDF(self, iDir, tDir, t, start, stop, runStart = 0, runStop = 999999999, rndm = 12345, outDir = ".", cut=None):
       
       dbg = False
       
@@ -588,13 +587,19 @@ class quantileRegression:
 
       # apply basic selection
       #
-      df = df.query('@self.ptmin < probePt and probePt < @self.ptmax and @self.etamin < probeEta and probeEta < @self.etamax and @self.phimin < probePhi and probePhi < @self.phimax')
-      
       print mycolors.green+"Apply basic selection"+mycolors.default
       print " ptmin  = ", self.ptmin ,"\n ptmax  = ", self.ptmax , " \n etamin = ", self.etamin, " \n etamax = ", self.etamax, " \n phimin = ", self.phimin, " \n phimax = ", self.phimax
 
-      # print df  
-
+      df = df.query('@self.ptmin < probePt and probePt < @self.ptmax and @self.etamin < probeScEta and probeScEta < @self.etamax and @self.phimin < probePhi and probePhi < @self.phimax')
+      # print df
+      
+      if cut!=None:
+         print "Applying custom selection ", cut 
+         df = df.query(cut)
+      
+      if self.dataMC == 'data':
+         df = df.query('run>=@runStart and run<=@runStop')
+ 
       # reshuffle events
       #
       print mycolors.green+"Reshuffle events"+mycolors.default, "rndm seed  = ", rndm
@@ -626,28 +631,33 @@ class quantileRegression:
       self.df = df
 
       print "DataFrame size = ", len(self.df.index)
-
+      
+      dfname = outDir + '/df_' + self.label
       # save the DF locally for future use
-      if stop == -1:
-         dfname = outDir + '/df_' + self.label + '_All.h5'
-      else:
-         dfname = outDir + '/df_' + self.label + '_' + str(start) + '-' + str(stop) + '.h5'
-      hdf = pd.HDFStore(dfname)
-      hdf.put('df', self.df)
-      hdf.close()
-
+      if stop == -1 and runStart == 0 and runStop == 999999999:
+         dfname = dfname + '_All'
+      elif stop != -1:
+         dfname = dfname + '_evts_' + str(start) + '-' + str(stop)
+      elif runStart != 0 and runStop != 999999999:
+         dfname = dfname + '_runs_' + str(runStart) + '-' +  str(runStop)
+      dfname = dfname + '.h5'
+      
+      #hdf = pd.HDFStore(dfname)
+      #hdf.put('df', self.df)
+      #hdf.close()
+      self.df.to_hdf(dfname,'df',mode='w',format='t')
 
    # load the dataframe from an already existing h5 file
    # 
    # --------------------------------------------------------------------------------
    #
-   def loadDFh5(self, h5name, start, stop, rndm = 12345, resh=False):
+   def loadDFh5(self, h5name, start, stop, rndm = 12345, resh=False, columns=None):
 
       df = 0
       import os.path
       if os.path.exists(h5name):
          print 'Loading dataframe from : ', h5name
-         df = pd.read_hdf(h5name, 'df')
+         df = pd.read_hdf(h5name, 'df', columns=columns, start=start, stop=stop)
       else:
          print "The h5 file ", h5name, " does not exist"
          return
@@ -666,13 +676,15 @@ class quantileRegression:
          np.random.seed(rndm)
          #index = list(df.index)
          np.random.shuffle(index)
+         df = df.ix[index]
+         df.reset_index(drop=True, inplace=True)
 
       print mycolors.green+"Selecting events",mycolors.default, " [", start, ", ", stop, "]  out of ", len(df.index)
-      index = index[start:stop]
+      #index = index[start:stop]
       #df = df[start:stop]
 
-      df = df.ix[index]
-      df.reset_index(drop=True, inplace=True)
+      #df = df.ix[index]
+      #df.reset_index(drop=True, inplace=True)
 
       self.df = df
       print "number of events:", len(df.index)
@@ -749,17 +761,17 @@ class quantileRegression:
    # 
    # --------------------------------------------------------------------------------
    #   
-   def trainQuantile(self, var, alpha, pathWeights, EBEE ="", maxDepth = 3, minLeaf = 9, useWeights = False):
+   def trainQuantile(self, var, alpha, pathWeights, EBEE ="EBEE", maxDepth = 3, minLeaf = 9, useWeights = False):
       #self.df = self.df.query('weight>0')
       if   EBEE == 'EB':
-         self.applyCutsToDF('ScEta', -1.4442, 1.4442, 'inside')
+         self.applyCutsToDF('probeScEta', -1.4442, 1.4442, 'inside')
       elif EBEE == 'EE':
-         self.applyCutsToDF('ScEta', -1.57, 1.57, 'outside')
-      elif EBEE == '':
+         self.applyCutsToDF('probeScEta', -1.4442, 1.4442, 'outside')
+      elif EBEE == 'EBEE':
          print "Training both EB and EE together"
 
       # quantile regressions features
-      X     = self.df.loc[:,['probePt', 'probeEta', 'probePhi', 'rho']]
+      X     = self.df.loc[:,['probePt', 'probeScEta', 'probePhi', 'rho']]
       # target
       Y     = self.df[var]
       #event weight
@@ -767,17 +779,17 @@ class quantileRegression:
       #   The isolation variables have a discrete single value at zero and then a smooth distribution
       #   To avoid degeneracies in the quantile matching I artificially smear them subracting rho
       #   (like a PU correction)
-      if var == "PhoIso03":
-         self.df['PhoIso03rho'] = self.df['PhoIso03'] - 0.1*self.df['rho']
-         Y = self.df['PhoIso03rho']
+      if var == "probePhoIso":
+         self.df['probePhoIsorho'] = self.df['probePhoIso'] - 0.1*self.df['rho']
+         Y = self.df['probePhoIsorho']
          var = var +"rho"
-      if var == "ChIso03":
-         self.df['ChIso03rho'] = self.df['ChIso03'] - 0.1*self.df['rho']
-         Y = self.df['ChIso03rho']
+      if var == "probeChIso":
+         self.df['probeChIsorho'] = self.df['probeChIso'] - 0.1*self.df['rho']
+         Y = self.df['probeChIsorho']
          var = var +"rho"
-      if var == "ChIso03worst":
-         self.df['ChIso03rhoworst'] = self.df['ChIso03worst'] - 0.1*self.df['rho']
-         Y = self.df['ChIso03rhoworst']
+      if var == "probeChIso03worst":
+         self.df['probeChIso03rhoworst'] = self.df['probeChIso03worst'] - 0.1*self.df['rho']
+         Y = self.df['probeChIso03rhoworst']
          var = var +"rho"
 
       print "Data runMin= ", self.df['run'].min()," - runMax = ", self.df['run'].max()
@@ -794,7 +806,7 @@ class quantileRegression:
        #  w=self.df.copy()
        #  w.loc[w.query("weight<0").index,"weight"]=0
        #  w=w['weight']
-       #  w.abs() for absolute values
+         w=w.abs()#for absolute values
          clf.fit(X, Y, w)
       else:
          clf.fit(X, Y)
@@ -825,12 +837,6 @@ class quantileRegression:
       print outputName
       #work here for the protocol and understand to lower the  check      
       pickle.dump(clf, gzip.open(outputName, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
-
-
-
-
-
-
 
 
 
@@ -912,7 +918,7 @@ class quantileRegression:
    #
    # --------------------------------------------------------------------------------
    #
-   def loadDataWeights(self, filename, var, quantiles):
+   def loadDataWeights(self, filename, var, quantiles, ins=None):
 
       dbg = False
                   
@@ -920,7 +926,11 @@ class quantileRegression:
 
       self.dataclf = []
       for q in quantiles:
-         dataWeights   = filename + "_" + var + '_' + str(q) + ".pkl"
+         if ins==None:
+            dataWeights   = filename + "_" + var + '_' + str(q) + ".pkl"
+         else:
+            dataWeights   = filename + "_" + var + '_' + str(q) + "_" + str(ins) + ".pkl"
+
          self.dataclf  .append(pickle.load(gzip.open(dataWeights)))
       if dbg : print "DATA weights : ", self.dataclf
       
@@ -929,7 +939,7 @@ class quantileRegression:
    #
    # --------------------------------------------------------------------------------
    #
-   def loadMcWeights(self, filename, var, quantiles):
+   def loadMcWeights(self, filename, var, quantiles, ins=None):
 
       dbg = False
                   
@@ -937,7 +947,10 @@ class quantileRegression:
 
       self.mcclf = []
       for q in quantiles:
-         mcWeights = filename + "_" + var + '_' + str(q) + ".pkl"         
+         if ins==None:
+            mcWeights = filename + "_" + var + '_' + str(q) + ".pkl"
+         else:
+            mcWeights = filename + "_" + var + '_' + str(q) + "_" + str(ins) + ".pkl"
          self.mcclf    .append(pickle.load(gzip.open(mcWeights)))
       if dbg : print "MC   weights : ", mcclf
 
@@ -1149,19 +1162,20 @@ class quantileRegression:
    def computeIdMvas(self,mvas,weights,n_jobs=1):
       wd = os.getcwd()
 
-      weightsEB,weightsEE = map(lambda x: os.path.join(wd,x), weights )
+      weightsEB,weightsEE = weights
       for name,correctedVariables in mvas:
          self.computeIdMva(name,wd,weightsEB,weightsEE,correctedVariables,n_jobs)
 
    def computeIdMva(self,name,wd,weightsEB,weightsEE,correctedVariables,n_jobs):
       stride = self.df.index.size / n_jobs
-      print("Computing %s, correcting %s" % (name,correctedVariables) )
+      print("Computing %s, correcting %s, stride %s" % (name,correctedVariables,stride) )
       Y = np.concatenate(Parallel(n_jobs=n_jobs,verbose=20)(
          delayed(computeIdMva)(wd,weightsEB,weightsEE,correctedVariables,self.df.loc[ch:ch+stride-1])
          for ch in xrange(0,self.df.index.size,stride) )
       )      
 
       ## Y = computeIdMva(wd,weightsEB,weightsEE,correctedVariables,self.df)
+      print "Array length difference: ", len(Y)-self.df.index.size
 
       self.df[name] = Y
 
@@ -1508,7 +1522,7 @@ class quantileRegression:
       xx = self.df.ix[:,[xVar]]
 
       # quantile regressions features
-      X     = self.df.loc[:,['Pt', 'ScEta', 'Phi', 'rho']]
+      X     = self.df.loc[:,['probePt', 'probeScEta', 'probePhi', 'rho']].values
       # target
       yy    = self.df[yVar]
 
@@ -1540,7 +1554,7 @@ class quantileRegression:
             nvar        = np.zeros(nbins)
             var1d       = np.ravel(var)
             for n in range(var.size):
-               # print inds[n]-1 , "   " , bins[inds[n]-1], "<=", var1d[n], "<", bins[inds[n]]
+               print inds[n]-1 , "   " , bins[inds[n]-1], "<=", var1d[n], "<", bins[inds[n]]
                vyy[inds[n]-1] = vyy[inds[n]-1] + y_pred[n]
                nvar[inds[n]-1] += 1
             meanyyvar = vyy / nvar # the use of the mean is not great...
@@ -1606,4 +1620,31 @@ class quantileRegression:
    def getCLF(self):#, X, Y, y_mc, y_data ):
       return self.mcclf
 
+def applyCorrection_part(df,mcweights,dataweights,x,y,quantiles,startEvt,stopEvt):
 
+   qReg_mc = quantileRegression('mc')
+   qReg_mc.loadDFh5(df,startEvt,stopEvt)
+   qReg_mc.loadDataWeights(dataweights,y,quantiles)
+   qReg_mc.loadMcWeights(mcweights,y,quantiles)
+
+#print "Get corrections for ", y, " with quantiles ", quantiles
+
+#   y_tmp = []
+
+# quantile regressions features                                                                    
+   X    = qReg_mc.df.loc[:,x].values
+# target e.g. y = "R9"                                                                             
+   Y    = qReg_mc.df[y]
+   print "Features: X = ", x, " target y = ", y
+# print X, Y                                                                                       
+
+   if y == 'PhoIso03' or y == 'ChIso03' or y == 'ChIso03worst':
+      Y = Y - 0.1*qReg_mc.df['rho']
+    
+   Y = Y.values.reshape(-1,1)
+   Z = np.hstack([X,Y])
+
+   Y_corr = Corrector(qReg_mc.mcclf, qReg_mc.dataclf, Z[:,:-1], Z[:,-1])()
+   #qReg_mc.df[y+"_corr"] = Y_corr
+   
+   return Y_corr

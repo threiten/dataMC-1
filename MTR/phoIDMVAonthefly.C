@@ -77,7 +77,7 @@ TMVA::Reader* bookReadersEE(const string &xmlfilenameEE, phoIDInput &inp, bool r
   phoIdMva_EE_->AddVariable( "esEffSigmaRR",   &inp.phoIdMva_ESEffSigmaRR_ );
   //cout << "second step";
   // if(rhoCorr) phoIdMva_EE_->AddVariable( "esEnovSCRawEn",   &inp.phoIdMva_esEnovSCRawEn_ );
-  if(rhoCorr) phoIdMva_EE_->AddVariable( "esEnergy/SCRawE",   &inp.phoIdMva_esEnovSCRawEn_ );
+  phoIdMva_EE_->AddVariable( "esEnergyOverRawE",   &inp.phoIdMva_esEnovSCRawEn_ );
   phoIdMva_EE_->BookMVA( mvamethod.c_str(), xmlfilenameEE );
   //cout << "out";
   return phoIdMva_EE_;
