@@ -37,7 +37,7 @@ sEBEE      = sys.argv[8]
 
 # qr = quantileRegression(sys.argv[1])
 
-outputDir = "/mnt/t3nfs01/data01/shome/threiten/QReg/ReReco17_data/camp_3_0_X/weights"
+outputDir = "/mnt/t3nfs01/data01/shome/threiten/QReg/ReReco16/weights"
 #cols=['probePt', 'probePhi', 'probeScEta', 'rho', 'weight', 'run', 'probeR9', 'probeS4', 'probeEtaWidth', 'probePhiWidth', 'probeSigmaIeIe', 'probeCovarianceIetaIphi','probeCovarianceIphiIphi']
 if not os.path.exists(outputDir):
    print 'Creating output dir:', outputDir
@@ -49,14 +49,14 @@ if dataMC == "data":
 
       qr = QReg.quantileRegression(sys.argv[1])
       # to reduce memory consuption just load the locally pre-made h5 file
-      qr.loadDFh5("/mnt/t3nfs01/data01/shome/threiten/QReg/ReReco17_data/camp_3_0_X/df_data_kinSS_All.h5", startEvt, stopEvt, 12345, False)
+      qr.loadDFh5("/mnt/t3nfs01/data01/shome/threiten/QReg/ReReco16/df_data_kinSS_All.h5", startEvt, stopEvt, 12345, False)
       qr.trainQuantile(Y, q, outputDir, EBEE = sEBEE, maxDepth = imaxDepth, minLeaf = iminLeaf,  useWeights = False)
 
 elif dataMC == "mc":
    for q in quantiles:
       qr = QReg.quantileRegression(sys.argv[1])
       # to reduce memory consuption just load the locally pre-made h5 file
-      qr.loadDFh5("/mnt/t3nfs01/data01/shome/threiten/QReg/ReReco17_data/camp_3_0_X/df_mc_kinSS_All.h5", startEvt, stopEvt, 12345, False)
+      qr.loadDFh5("/mnt/t3nfs01/data01/shome/threiten/QReg/ReReco16/df_mc_kinSS_All.h5", startEvt, stopEvt, 12345, False)
       qr.trainQuantile(Y, q, outputDir, EBEE = sEBEE, maxDepth = imaxDepth, minLeaf = iminLeaf,  useWeights = False)
 
 

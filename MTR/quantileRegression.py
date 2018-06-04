@@ -284,7 +284,7 @@ class quantileRegression:
       self.data_recoBranches   = self.evtBranches  + self.trgBranches + self.eleMatchBranches + self.recoLeadBranches + self.recoLeadSSBranches + self.recoSubleadBranches + self.recoSubleadSSBranches 
       self.mc_recoBranches     = self.evtBranches  +                    self.eleMatchBranches + self.recoLeadBranches + self.recoLeadSSBranches + self.recoSubleadBranches + self.recoSubleadSSBranches 
       
-      self.data_recoBranchesTnP = self.evtBranches  + self.trgBranches + self.eleMatchBranches + self.recoProbeBranches + self.recoProbeSSBranches + self.recoTagBranches + self.recoTagSSBranches 
+      self.data_recoBranchesTnP = self.evtBranches + self.eleMatchBranches + self.recoProbeBranches + self.recoProbeSSBranches + self.recoTagBranches + self.recoTagSSBranches 
       self.mc_recoBranchesTnP = self.evtBranches  + self.eleMatchBranches + self.recoProbeBranches + self.recoProbeSSBranches + self.recoTagBranches + self.recoTagSSBranches
  
       self.df = 0
